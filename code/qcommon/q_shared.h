@@ -26,19 +26,21 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // q_shared.h -- included first by ALL program modules.
 // A user mod should never modify this file
 
+#define	PROTOCOL_VERSION	71
+
 #ifdef STANDALONE
-  #define PRODUCT_NAME				"iofoo3"
-  #define BASEGAME					"foobar"
-  #define CLIENT_WINDOW_TITLE		"changeme"
-  #define CLIENT_WINDOW_MIN_TITLE	"changeme2"
-  #define HOMEPATH_NAME_UNIX		".foo"
-  #define HOMEPATH_NAME_WIN			"FooBar"
+  #define PRODUCT_NAME				"wop"
+  #define BASEGAME					"wop"
+  #define CLIENT_WINDOW_TITLE		"WorldOfPadman"
+  #define CLIENT_WINDOW_MIN_TITLE	"WoP"
+  #define HOMEPATH_NAME_UNIX		".WorldOfPadman"
+  #define HOMEPATH_NAME_WIN			"WorldOfPadman"
   #define HOMEPATH_NAME_MACOSX		HOMEPATH_NAME_WIN
-//  #define STEAMPATH_NAME			"Foo Bar"
+//  #define STEAMPATH_NAME			"World of Padman"
 //  #define STEAMPATH_APPID         ""
-  #define GAMENAME_FOR_MASTER		"foobar"	// must NOT contain whitespace
-  #define CINEMATICS_LOGO		"foologo.roq"
-  #define CINEMATICS_INTRO		"intro.roq"
+  #define GAMENAME_FOR_MASTER		"WorldOfPadman"	// must NOT contain whitespace
+//  #define CINEMATICS_LOGO		"foologo.roq"
+//  #define CINEMATICS_INTRO		"intro.roq"
 //  #define LEGACY_PROTOCOL	// You probably don't need this for your standalone game
 #else
   #define PRODUCT_NAME				"ioq3"
@@ -68,7 +70,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define BASETA				"missionpack"
 
 #ifndef PRODUCT_VERSION
-  #define PRODUCT_VERSION "1.36"
+  #define PRODUCT_VERSION "1.7-dev"
 #endif
 
 #ifndef PRODUCT_DATE
@@ -80,7 +82,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAX_TEAMNAME		32
 #define MAX_MASTER_SERVERS      5	// number of supported master servers
 
-#define DEMOEXT	"dm_"			// standard demo extension
+#define DEMOEXT	"wopdemo_"			// standard demo extension
 
 #ifdef _MSC_VER
 

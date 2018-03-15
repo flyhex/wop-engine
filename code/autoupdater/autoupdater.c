@@ -47,18 +47,19 @@ static int sha256_hash_index = 0;
 
 
 #ifndef AUTOUPDATE_USER_AGENT
-#define AUTOUPDATE_USER_AGENT "ioq3autoupdater/0.1"
+#define AUTOUPDATE_USER_AGENT "WoP-Autoupdater/0.1"
 #endif
 
 
 #ifndef AUTOUPDATE_URL
 
 #ifndef AUTOUPDATE_BASEURL
-#define AUTOUPDATE_BASEURL "https://upd.ioquake3.org/updates/v1"
+// #define AUTOUPDATE_BASEURL "github/PadWorld-Entertainment" 
+#define AUTOUPDATE_BASEURL ""
 #endif
 
 #ifndef AUTOUPDATE_PACKAGE 
-#define AUTOUPDATE_PACKAGE "ioquake3"
+#define AUTOUPDATE_PACKAGE "wop"
 #endif
 
 #ifdef __APPLE__

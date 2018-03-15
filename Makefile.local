@@ -1,0 +1,32 @@
+ifndef VERSION
+VERSION=1.7-dev
+endif
+
+ifndef CLIENTBIN
+CLIENTBIN=wop-dev
+endif
+
+ifndef SERVERBIN
+SERVERBIN=wopded-dev
+endif
+
+ifndef BASEGAME
+BASEGAME=wop
+endif
+
+ifndef COPYDIR
+COPYDIR="/usr/local/games/WorldOfPadman"
+endif
+
+ifndef BASEGAME_CFLAGS
+BASEGAME_CFLAGS=
+endif
+
+ifndef MISSIONPACK
+MISSIONPACK=
+endif
+
+ifndef MISSIONPACK_CFLAGS
+MISSIONPACK_CFLAGS=-DMISSIONPACK
+endif
+

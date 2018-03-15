@@ -1,5 +1,5 @@
 #
-# ioq3 Makefile
+# wop Makefile
 #
 # GNU Make required
 #
@@ -12,7 +12,7 @@ ifeq ($(COMPILE_PLATFORM),sunos)
 endif
 
 ifndef BUILD_STANDALONE
-  BUILD_STANDALONE =
+  BUILD_STANDALONE = 1
 endif
 ifndef BUILD_CLIENT
   BUILD_CLIENT     =
@@ -21,19 +21,19 @@ ifndef BUILD_SERVER
   BUILD_SERVER     =
 endif
 ifndef BUILD_GAME_SO
-  BUILD_GAME_SO    =
+  BUILD_GAME_SO    = 0
 endif
 ifndef BUILD_GAME_QVM
-  BUILD_GAME_QVM   =
+  BUILD_GAME_QVM   = 1
 endif
 ifndef BUILD_BASEGAME
   BUILD_BASEGAME =
 endif
 ifndef BUILD_MISSIONPACK
-  BUILD_MISSIONPACK=
+  BUILD_MISSIONPACK= 0
 endif
 ifndef BUILD_RENDERER_OPENGL2
-  BUILD_RENDERER_OPENGL2=
+  BUILD_RENDERER_OPENGL2= 1
 endif
 ifndef BUILD_AUTOUPDATER  # DON'T build unless you mean to!
   BUILD_AUTOUPDATER=0
