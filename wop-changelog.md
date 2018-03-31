@@ -4,7 +4,15 @@
 
 ioq3-master https://github.com/ioquake/ioq3/commit/d28e667e469c68223f6969130e23c4ea1f09cc5e
 
+- TODO
+	- 64bit binaries for Windows 
+	- drastically reduce initial sound volume
+	- enable auto download by default
+	- remove superfluos cdkey menu code `ui_cdkey.c`
+	- remove leftover singleplayer files `ui_wopsp.c` etc. (or use them...)
+	
 - CHANGED
+	- the default extension for demo files is now "wopdemo_" instead of "dm_"
 	- changed home path name to "WorldOfPadman" for consistency with gamename and to avoid possible collisions (yes, there are more things called "Padman")
 	- new icon for the Windows binaries, made from the WoP SVG icon, also an iconset
 	- ioquake 3 version 1.36 Git, 04 Mar 2018 
