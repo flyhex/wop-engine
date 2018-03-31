@@ -36,4 +36,5 @@ Der Programmcode steht unter der
 	GNU GENERAL PUBLIC LICENSE (Version 2, June 1991). 
 Detaillierte Inforamtionen zur GPL befinden sich in der gpl.txt. 
 
-Bei Fragen und Hinweisen kontaktieren Sie das WoP-Team bitte per E-Mail: team@worldofpadman.com
+Bei Fragen und Hinweisen kontaktieren Sie das WoP-Team bitte per E-Mail: 
+	team@worldofpadman.com
