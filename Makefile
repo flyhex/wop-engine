@@ -24,7 +24,7 @@ ifndef BUILD_GAME_SO
   BUILD_GAME_SO    = 0
 endif
 ifndef BUILD_GAME_QVM
-  BUILD_GAME_QVM   = 1
+  BUILD_GAME_QVM   = 0
 endif
 ifndef BUILD_BASEGAME
   BUILD_BASEGAME =
