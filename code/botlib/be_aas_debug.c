@@ -1,24 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 
 /*****************************************************************************
  * name:		be_aas_debug.c
@@ -411,6 +403,31 @@ void AAS_ShowArea(int areanum, int groundfacesonly)
 	} //end if
 	//pointer to the convex area
 	area = &aasworld.areas[areanum];
+
+	// cyr: aas created with -optimize has no faces or edges, show at least a rough box
+	if( !area->numfaces ){
+		vec3_t tmp, tmp2;
+		// aas was compiled using -optimize.. no faces, no edges
+		if(!groundfacesonly){
+			VectorSet(tmp, 0, 0, 0);
+			AAS_ShowBoundingBox(tmp, area->mins, area->maxs);
+		}
+		else{
+			VectorCopy(area->maxs, tmp);
+			tmp[2] = area->mins[2];
+			VectorCopy(tmp, tmp2);
+
+			tmp[0] = area->mins[0];
+			AAS_DebugLine(area->mins, tmp, LINECOLOR_GREEN );
+			AAS_DebugLine(tmp, tmp2, LINECOLOR_GREEN );
+			tmp[0] = area->maxs[0];
+			tmp[1] = area->mins[1];
+			AAS_DebugLine(area->mins, tmp, LINECOLOR_GREEN );
+			AAS_DebugLine(tmp, tmp2, LINECOLOR_GREEN );
+		}
+		return;
+	}
+
 	//walk through the faces of the area
 	for (i = 0; i < area->numfaces; i++)
 	{
@@ -608,7 +625,7 @@ void AAS_ShowReachability(aas_reachability_t *reach)
 	float speed, zvel;
 	aas_clientmove_t move;
 
-	AAS_ShowAreaPolygons(reach->areanum, 5, qtrue);
+//	AAS_ShowAreaPolygons(reach->areanum, 5, qtrue);
 	//AAS_ShowArea(reach->areanum, qtrue);
 	AAS_DrawArrow(reach->start, reach->end, LINECOLOR_BLUE, LINECOLOR_YELLOW);
 	//
@@ -629,7 +646,7 @@ void AAS_ShowReachability(aas_reachability_t *reach)
 		AAS_PredictClientMovement(&move, -1, reach->start, PRESENCE_NORMAL, qtrue,
 									velocity, cmdmove, 3, 30, 0.1f,
 									SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|
-									SE_ENTERLAVA|SE_HITGROUNDDAMAGE, 0, qtrue);
+									SE_ENTERLAVA, 0, qtrue);
 		//
 		if ((reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_JUMP)
 		{
@@ -651,8 +668,7 @@ void AAS_ShowReachability(aas_reachability_t *reach)
 		//
 		AAS_PredictClientMovement(&move, -1, reach->start, PRESENCE_NORMAL, qtrue,
 									velocity, cmdmove, 30, 30, 0.1f,
-									SE_ENTERWATER|SE_ENTERSLIME|
-									SE_ENTERLAVA|SE_HITGROUNDDAMAGE|
+									SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|
 									SE_TOUCHJUMPPAD|SE_HITGROUNDAREA, reach->areanum, qtrue);
 	} //end else if
 	else if ((reach->traveltype & TRAVELTYPE_MASK) == TRAVEL_JUMPPAD)
@@ -670,8 +686,7 @@ void AAS_ShowReachability(aas_reachability_t *reach)
 		//
 		AAS_PredictClientMovement(&move, -1, reach->start, PRESENCE_NORMAL, qtrue,
 									velocity, cmdmove, 30, 30, 0.1f,
-									SE_ENTERWATER|SE_ENTERSLIME|
-									SE_ENTERLAVA|SE_HITGROUNDDAMAGE|
+									SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA|
 									SE_TOUCHJUMPPAD|SE_HITGROUNDAREA, reach->areanum, qtrue);
 	} //end else if
 } //end of the function AAS_ShowReachability

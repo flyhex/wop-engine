@@ -1,24 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 // console.c
 
 #include "client.h"
@@ -356,7 +349,7 @@ Con_Init
 void Con_Init (void) {
 	int		i;
 
-	con_notifytime = Cvar_Get ("con_notifytime", "3", 0);
+	con_notifytime = Cvar_Get ("con_notifytime", "-5", 0);
 	con_conspeed = Cvar_Get ("scr_conspeed", "3", 0);
 	con_autoclear = Cvar_Get("con_autoclear", "1", CVAR_ARCHIVE);
 
@@ -626,6 +619,8 @@ void Con_DrawNotify (void)
 
 		Field_BigDraw( &chatField, skip * BIGCHAR_WIDTH, v,
 			SCREEN_WIDTH - ( skip + 1 ) * BIGCHAR_WIDTH, qtrue, qtrue );
+
+		v += BIGCHAR_HEIGHT;
 	}
 
 }
@@ -646,6 +641,7 @@ void Con_DrawSolidConsole( float frac ) {
 //	qhandle_t		conShader;
 	int				currentColor;
 	vec4_t			color;
+	vec4_t			tblack = {0,0,0,0.4f};
 
 	lines = cls.glconfig.vidHeight * frac;
 	if (lines <= 0)
@@ -667,23 +663,24 @@ void Con_DrawSolidConsole( float frac ) {
 		SCR_DrawPic( 0, 0, SCREEN_WIDTH, y, cls.consoleShader );
 	}
 
-	color[0] = 1;
-	color[1] = 0;
-	color[2] = 0;
-	color[3] = 1;
-	SCR_FillRect( 0, y, SCREEN_WIDTH, 2, color );
+ 	color[0] = 1.0f;
+ 	color[1] = 0.8f;
+ 	color[2] = 0.0f;
+  	color[3] = 1;
+ 	SCR_FillRect( 0, y-2, SCREEN_WIDTH, 4, color );
+ 	SCR_FillRect( 0, y+2, SCREEN_WIDTH, 8, tblack );
 
 
 	// draw the version number
 
-	re.SetColor( g_color_table[ColorIndex(COLOR_RED)] );
-
-	i = strlen( Q3_VERSION );
-
-	for (x=0 ; x<i ; x++) {
-		SCR_DrawSmallChar( cls.glconfig.vidWidth - ( i - x + 1 ) * SMALLCHAR_WIDTH,
-			lines - SMALLCHAR_HEIGHT, Q3_VERSION[x] );
-	}
+ 	re.SetColor( color );
+  
+ 	i = strlen( Q3_VERSION );
+  
+  	for (x=0 ; x<i ; x++) {  
+  		SCR_DrawSmallChar( cls.glconfig.vidWidth - ( i - x ) * SMALLCHAR_WIDTH, 
+ 			(lines-(SMALLCHAR_HEIGHT+SMALLCHAR_HEIGHT/2)), Q3_VERSION[x] );
+  	}
 
 
 	// draw the text

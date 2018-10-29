@@ -1,25 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 /*
 =======================================================================
 
@@ -230,7 +222,7 @@ void AssetCache( void ) {
 		uiInfo.uiDC.Assets.crosshairShader[n] = trap_R_RegisterShaderNoMip( va("gfx/2d/crosshair%c", 'a' + n ) );
 	}
 
-	uiInfo.newHighScoreSound = trap_S_RegisterSound("sound/feedback/voc_newhighscore.wav", qfalse);
+	uiInfo.newHighScoreSound = trap_S_RegisterSound("sound/feedback/voc_newhighscore", qfalse);
 }
 
 void _UI_DrawSides(float x, float y, float w, float h, float size) {
@@ -5807,10 +5799,10 @@ static cvarTable_t		cvarTable[] = {
 	{ &ui_new, "ui_new", "0", CVAR_TEMP },
 	{ &ui_debug, "ui_debug", "0", CVAR_TEMP },
 	{ &ui_initialized, "ui_initialized", "0", CVAR_TEMP },
-	{ &ui_teamName, "ui_teamName", "Pagans", CVAR_ARCHIVE },
-	{ &ui_opponentName, "ui_opponentName", "Stroggs", CVAR_ARCHIVE },
-	{ &ui_redteam, "ui_redteam", "Pagans", CVAR_ARCHIVE },
-	{ &ui_blueteam, "ui_blueteam", "Stroggs", CVAR_ARCHIVE },
+	{ &ui_teamName, "ui_teamName", "BlueNoses", CVAR_ARCHIVE },
+	{ &ui_opponentName, "ui_opponentName", "RedPads", CVAR_ARCHIVE },
+	{ &ui_redteam, "ui_redteam", "RedPads", CVAR_ARCHIVE },
+	{ &ui_blueteam, "ui_blueteam", "BlueNoses", CVAR_ARCHIVE },
 	{ &ui_dedicated, "ui_dedicated", "0", CVAR_ARCHIVE },
 	{ &ui_gameType, "ui_gametype", "3", CVAR_ARCHIVE },
 	{ &ui_joinGameType, "ui_joinGametype", "0", CVAR_ARCHIVE },

@@ -1,24 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 //
 // ui_players.c
 
@@ -79,15 +72,15 @@ tryagain:
 	}
 
 	if( pi->weaponModel == 0 ) {
-		if( weaponNum == WP_MACHINEGUN ) {
+		if( weaponNum == WP_NIPPER ) {
 			weaponNum = WP_NONE;
 			goto tryagain;
 		}
-		weaponNum = WP_MACHINEGUN;
+		weaponNum = WP_NIPPER;
 		goto tryagain;
 	}
 
-	if ( weaponNum == WP_MACHINEGUN || weaponNum == WP_GAUNTLET || weaponNum == WP_BFG ) {
+	if ( weaponNum == WP_NIPPER || weaponNum == WP_PUNCHY || weaponNum == WP_IMPERIUS ) {
 		COM_StripExtension( item->world_model[0], path, sizeof(path) );
 		Q_strcat( path, sizeof(path), "_barrel.md3" );
 		pi->barrelModel = trap_R_RegisterModel( path );
@@ -98,39 +91,39 @@ tryagain:
 	pi->flashModel = trap_R_RegisterModel( path );
 
 	switch( weaponNum ) {
-	case WP_GAUNTLET:
+	case WP_PUNCHY:
 		MAKERGB( pi->flashDlightColor, 0.6f, 0.6f, 1 );
 		break;
 
-	case WP_MACHINEGUN:
+	case WP_NIPPER:
 		MAKERGB( pi->flashDlightColor, 1, 1, 0 );
 		break;
 
-	case WP_SHOTGUN:
+	case WP_PUMPER:
 		MAKERGB( pi->flashDlightColor, 1, 1, 0 );
 		break;
 
-	case WP_GRENADE_LAUNCHER:
+	case WP_BALLOONY:
 		MAKERGB( pi->flashDlightColor, 1, 0.7f, 0.5f );
 		break;
 
-	case WP_ROCKET_LAUNCHER:
+	case WP_BETTY:
 		MAKERGB( pi->flashDlightColor, 1, 0.75f, 0 );
 		break;
 
-	case WP_LIGHTNING:
+	case WP_BOASTER:
 		MAKERGB( pi->flashDlightColor, 0.6f, 0.6f, 1 );
 		break;
 
-	case WP_RAILGUN:
+	case WP_SPLASHER:
 		MAKERGB( pi->flashDlightColor, 1, 0.5f, 0 );
 		break;
 
-	case WP_PLASMAGUN:
+	case WP_BUBBLEG:
 		MAKERGB( pi->flashDlightColor, 0.6f, 0.6f, 1 );
 		break;
 
-	case WP_BFG:
+	case WP_IMPERIUS:
 		MAKERGB( pi->flashDlightColor, 1, 0.7f, 1 );
 		break;
 
@@ -228,12 +221,18 @@ static void UI_TorsoSequencing( playerInfo_t *pi ) {
 	}
 
 	if( currentAnim == TORSO_GESTURE ) {
-		UI_SetTorsoAnim( pi, TORSO_STAND );
+		if(pi->weapon==WP_PUNCHY)
+			UI_SetTorsoAnim( pi, TORSO_STAND2 );
+		else
+			UI_SetTorsoAnim( pi, TORSO_STAND );
 		return;
 	}
 
 	if( currentAnim == TORSO_ATTACK || currentAnim == TORSO_ATTACK2 ) {
-		UI_SetTorsoAnim( pi, TORSO_STAND );
+		if(pi->weapon==WP_PUNCHY)
+			UI_SetTorsoAnim( pi, TORSO_STAND2 );
+		else
+			UI_SetTorsoAnim( pi, TORSO_STAND );
 		return;
 	}
 
@@ -245,7 +244,10 @@ static void UI_TorsoSequencing( playerInfo_t *pi ) {
 	}
 
 	if ( currentAnim == TORSO_RAISE ) {
-		UI_SetTorsoAnim( pi, TORSO_STAND );
+		if(pi->weapon==WP_PUNCHY)
+			UI_SetTorsoAnim( pi, TORSO_STAND2 );
+		else
+			UI_SetTorsoAnim( pi, TORSO_STAND );
 		return;
 	}
 }
@@ -599,14 +601,15 @@ static void UI_PlayerAngles( playerInfo_t *pi, vec3_t legs[3], vec3_t torso[3], 
 	// --------- yaw -------------
 
 	// allow yaw to drift a bit
-	if ( ( pi->legsAnim & ~ANIM_TOGGLEBIT ) != LEGS_IDLE 
+/*//NOTE(raute): it seems that made trouble with turning animated meshes in ui_playersettings.c ... probably there is a lot things like this in here (so things that we don't need for wop, but which are needed in vq3)
+	if ( ( pi->legsAnim & ~ANIM_TOGGLEBIT ) != LEGS_IDLE
 		|| ( pi->torsoAnim & ~ANIM_TOGGLEBIT ) != TORSO_STAND  ) {
 		// if not standing still, always point all in the same direction
 		pi->torso.yawing = qtrue;	// always center
 		pi->torso.pitching = qtrue;	// always center
 		pi->legs.yawing = qtrue;	// always center
 	}
-
+*/
 	// adjust legs for movement dir
 	adjust = UI_MovedirAdjustment( pi );
 	legsAngles[YAW] = headAngles[YAW] + adjust;
@@ -647,6 +650,36 @@ static void UI_PlayerAngles( playerInfo_t *pi, vec3_t legs[3], vec3_t torso[3], 
 	AnglesToAxis( legsAngles, legs );
 	AnglesToAxis( torsoAngles, torso );
 	AnglesToAxis( headAngles, head );
+
+	legs[0][0]*=pi->modelscale;
+	legs[0][1]*=pi->modelscale;
+	legs[0][2]*=pi->modelscale;
+	legs[1][0]*=pi->modelscale;
+	legs[1][1]*=pi->modelscale;
+	legs[1][2]*=pi->modelscale;
+	legs[2][0]*=pi->modelscale;
+	legs[2][1]*=pi->modelscale;
+	legs[2][2]*=pi->modelscale;
+
+	torso[0][0]*=pi->modelscale;
+	torso[0][1]*=pi->modelscale;
+	torso[0][2]*=pi->modelscale;
+	torso[1][0]*=pi->modelscale;
+	torso[1][1]*=pi->modelscale;
+	torso[1][2]*=pi->modelscale;
+	torso[2][0]*=pi->modelscale;
+	torso[2][1]*=pi->modelscale;
+	torso[2][2]*=pi->modelscale;
+
+	head[0][0]*=pi->modelscale;
+	head[0][1]*=pi->modelscale;
+	head[0][2]*=pi->modelscale;
+	head[1][0]*=pi->modelscale;
+	head[1][1]*=pi->modelscale;
+	head[1][2]*=pi->modelscale;
+	head[2][0]*=pi->modelscale;
+	head[2][1]*=pi->modelscale;
+	head[2][2]*=pi->modelscale;
 }
 
 
@@ -699,7 +732,7 @@ float	UI_MachinegunSpinAngle( playerInfo_t *pi ) {
 	if ( pi->barrelSpinning == !(torsoAnim == TORSO_ATTACK) ) {
 		pi->barrelTime = dp_realtime;
 		pi->barrelAngle = AngleMod( angle );
-		pi->barrelSpinning = !!(torsoAnim == TORSO_ATTACK);
+		pi->barrelSpinning = (torsoAnim == TORSO_ATTACK);
 	}
 
 	return angle;
@@ -751,6 +784,12 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	memset( &torso, 0, sizeof(torso) );
 	memset( &head, 0, sizeof(head) );
 
+	if ( pi->glowModel ) {
+		memcpy( legs.shaderRGBA,  &pi->glowColor, sizeof( pi->glowColor ) );
+		memcpy( torso.shaderRGBA, &pi->glowColor, sizeof( pi->glowColor ) );
+		memcpy( head.shaderRGBA,  &pi->glowColor, sizeof( pi->glowColor ) );
+	}
+
 	refdef.rdflags = RDF_NOWORLDMODEL;
 
 	AxisClear( refdef.viewaxis );
@@ -760,6 +799,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	refdef.width = w;
 	refdef.height = h;
 
+//	refdef.fov_x = (int)((float)refdef.width / (float)uis.glconfig.vidHeight * 90.0f);
 	refdef.fov_x = (int)((float)refdef.width / uis.xscale / 640.0f * 90.0f);
 	xx = refdef.width / uis.xscale / tan( refdef.fov_x / 360 * M_PI );
 	refdef.fov_y = atan2( refdef.height / uis.yscale, xx );
@@ -770,6 +810,10 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	origin[0] = len / tan( DEG2RAD(refdef.fov_x) * 0.5 );
 	origin[1] = 0.5 * ( mins[1] + maxs[1] );
 	origin[2] = -0.5 * ( mins[2] + maxs[2] );
+
+	origin[0]+=pi->modeloffset[0];
+	origin[1]+=pi->modeloffset[1];
+	origin[2]+=pi->modeloffset[2];
 
 	refdef.time = dp_realtime;
 
@@ -843,12 +887,12 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	if ( pi->currentWeapon != WP_NONE ) {
 		memset( &gun, 0, sizeof(gun) );
 		gun.hModel = pi->weaponModel;
-		if( pi->currentWeapon == WP_RAILGUN ) {
+/*		if( pi->currentWeapon == WP_RAILGUN ) {
 			Byte4Copy( pi->c1RGBA, gun.shaderRGBA );
 		}
 		else {
 			Byte4Copy( colorWhite, gun.shaderRGBA );
-		}
+		}*/
 		VectorCopy( origin, gun.lightingOrigin );
 		UI_PositionEntityOnTag( &gun, &torso, pi->torsoModel, "tag_weapon");
 		gun.renderfx = renderfx;
@@ -858,7 +902,7 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 	//
 	// add the spinning barrel
 	//
-	if ( pi->realWeapon == WP_MACHINEGUN || pi->realWeapon == WP_GAUNTLET || pi->realWeapon == WP_BFG ) {
+	if ( pi->realWeapon == WP_NIPPER || pi->realWeapon == WP_PUNCHY || pi->realWeapon == WP_IMPERIUS ) {
 		vec3_t	angles;
 
 		memset( &barrel, 0, sizeof(barrel) );
@@ -869,6 +913,10 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 		angles[YAW] = 0;
 		angles[PITCH] = 0;
 		angles[ROLL] = UI_MachinegunSpinAngle( pi );
+		if( pi->realWeapon == WP_PUNCHY || pi->realWeapon == WP_IMPERIUS ) {
+			angles[PITCH] = angles[ROLL];
+			angles[ROLL] = 0;
+		}
 		AnglesToAxis( angles, barrel.axis );
 
 		UI_PositionRotatedEntityOnTag( &barrel, &gun, pi->weaponModel, "tag_barrel");
@@ -883,12 +931,12 @@ void UI_DrawPlayer( float x, float y, float w, float h, playerInfo_t *pi, int ti
 		if ( pi->flashModel ) {
 			memset( &flash, 0, sizeof(flash) );
 			flash.hModel = pi->flashModel;
-			if( pi->currentWeapon == WP_RAILGUN ) {
+/*			if( pi->currentWeapon == WP_RAILGUN ) {
 				Byte4Copy( pi->c1RGBA, flash.shaderRGBA );
 			}
 			else {
 				Byte4Copy( colorWhite, flash.shaderRGBA );
-			}
+			}*/
 			VectorCopy( origin, flash.lightingOrigin );
 			UI_PositionEntityOnTag( &flash, &gun, pi->weaponModel, "tag_flash");
 			flash.renderfx = renderfx;
@@ -934,13 +982,13 @@ UI_RegisterClientSkin
 static qboolean UI_RegisterClientSkin( playerInfo_t *pi, const char *modelName, const char *skinName ) {
 	char		filename[MAX_QPATH];
 
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/lower_%s.skin", modelName, skinName );
+	Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/lower_%s.skin", modelName, skinName );
 	pi->legsSkin = trap_R_RegisterSkin( filename );
 
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/upper_%s.skin", modelName, skinName );
+	Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/upper_%s.skin", modelName, skinName );
 	pi->torsoSkin = trap_R_RegisterSkin( filename );
 
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/head_%s.skin", modelName, skinName );
+	Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/head_%s.skin", modelName, skinName );
 	pi->headSkin = trap_R_RegisterSkin( filename );
 
 	if ( !pi->legsSkin || !pi->torsoSkin || !pi->headSkin ) {
@@ -968,6 +1016,9 @@ static qboolean UI_ParseAnimationFile( const char *filename, playerInfo_t *pi ) 
 	animation_t *animations;
 
 	animations = pi->animations;
+
+	VectorClear( pi->modeloffset );
+	pi->modelscale = 1.0f;
 
 	memset( animations, 0, sizeof( animation_t ) * MAX_ANIMATIONS );
 
@@ -1013,17 +1064,33 @@ static qboolean UI_ParseAnimationFile( const char *filename, playerInfo_t *pi ) 
 				}
 			}
 			continue;
-		} else if ( !Q_stricmp( token, "sex" ) ) {
+		} else if ( !Q_stricmp( token, "headscale" ) ) {
 			token = COM_Parse( &text_p );
 			if ( !token[0] ) {
 				break;
 			}
 			continue;
-		} else if ( !Q_stricmp( token, "fixedlegs" ) ) {
-			pi->fixedlegs = qtrue;
+		} else if ( !Q_stricmp( token, "menumodeloffset" ) ) {
+			for ( i = 0 ; i < 3 ; i++ ) {
+				token = COM_Parse( &text_p );
+				if ( !token[0] ) {
+					break;
+				}
+				pi->modeloffset[i]=atof(token);
+			}
 			continue;
-		} else if ( !Q_stricmp( token, "fixedtorso" ) ) {
-			pi->fixedtorso = qtrue;
+		} else if ( !Q_stricmp( token, "menumodelscale" ) ) {
+			token = COM_Parse( &text_p );
+			if ( !token[0] ) {
+				break;
+			}
+			pi->modelscale=atof(token);
+			continue;
+		} else if ( !Q_stricmp( token, "sex" ) ) {
+			token = COM_Parse( &text_p );
+			if ( !token[0] ) {
+				break;
+			}
 			continue;
 		}
 
@@ -1113,6 +1180,9 @@ qboolean UI_RegisterClientModelname( playerInfo_t *pi, const char *modelSkinName
 	char		skinName[MAX_QPATH];
 	char		filename[MAX_QPATH];
 	char		*slash;
+	qboolean	glowSkinRegistered = qfalse;
+	char		buff[MAX_CVAR_VALUE_STRING];
+	int			color;
 
 	pi->torsoModel = 0;
 	pi->headModel = 0;
@@ -1135,29 +1205,98 @@ qboolean UI_RegisterClientModelname( playerInfo_t *pi, const char *modelSkinName
 
 	// load cmodels before models so filecache works
 
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/lower.md3", modelName );
+	Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/lower.md3", modelName );
 	pi->legsModel = trap_R_RegisterModel( filename );
 	if ( !pi->legsModel ) {
 		Com_Printf( "Failed to load model file %s\n", filename );
 		return qfalse;
 	}
 
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/upper.md3", modelName );
+	Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/upper.md3", modelName );
 	pi->torsoModel = trap_R_RegisterModel( filename );
 	if ( !pi->torsoModel ) {
 		Com_Printf( "Failed to load model file %s\n", filename );
 		return qfalse;
 	}
 
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/head.md3", modelName );
-	pi->headModel = trap_R_RegisterModel( filename );
+	// looking for special head for this skin ...
+	if( *skinName && Q_stricmp(skinName,"default") ) {
+
+		// first try directly with skinName
+		Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/head_%s.md3", modelName, skinName );
+		pi->headModel = trap_R_RegisterModel( filename );
+
+		// if it fail, we will try it with a skinName without the teamending
+		if(!pi->headModel) {
+			char	skinWhithoutTeam[MAX_QPATH];
+			char*	ptr;
+			Q_strncpyz(skinWhithoutTeam,skinName,sizeof(skinWhithoutTeam));
+
+			if((ptr=strstr(skinWhithoutTeam,"_blue")) || (ptr=strstr(skinWhithoutTeam,"_red"))) {
+				*ptr = '\0';
+			}
+
+			Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/head_%s.md3", modelName, skinWhithoutTeam );
+			pi->headModel = trap_R_RegisterModel( filename );
+		}
+	}
+
+	if ( !pi->headModel ) {
+		Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/head.md3", modelName );
+		pi->headModel = trap_R_RegisterModel( filename );
+	}
+
 	if ( !pi->headModel ) {
 		Com_Printf( "Failed to load model file %s\n", filename );
 		return qfalse;
 	}
 
+
+	// FIXME: One day, we might have a menu which allows selection of team_model,
+	//        so we should use cg_glowModelTeam
+	// TODO: Avoid copy&paste from cg_players.c glow code
+	color = ColorIndex( COLOR_BLACK );
+	pi->glowModel = qfalse;
+	Q_strncpyz( buff, UI_Cvar_VariableString( "cg_glowModel" ), sizeof( buff ) );
+	if ( strlen( buff ) ) {
+		char *ptr, subSkinName[MAX_QPATH];
+
+		glowSkinRegistered = qtrue;
+		color = ColorIndex( buff[0] );
+
+		Q_strncpyz( subSkinName, skinName, sizeof( subSkinName ) );
+		ptr = strrchr( subSkinName, '_' );
+		if ( ptr ) {
+			*ptr++ = '\0';
+		}
+		if ( ( Q_stricmp( "red", subSkinName ) == 0 ) || ( Q_stricmp( "blue", subSkinName ) == 0 ) ) {
+			Q_strncpyz( subSkinName, "default", sizeof( subSkinName ) );
+		}
+		// FIXME: Move GLOW_SKIN and DEFAULT_SKIN define to bg
+		Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/glow_lower_%s.skin", modelName, subSkinName ); 
+		pi->legsSkin = trap_R_RegisterSkin( filename );
+		Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/glow_upper_%s.skin", modelName, subSkinName ); 
+		pi->torsoSkin = trap_R_RegisterSkin( filename );
+		Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/glow_head_%s.skin", modelName, subSkinName ); 
+		pi->headSkin = trap_R_RegisterSkin( filename ); 
+
+
+		// if any skins failed to load
+		if ( !pi->legsSkin || !pi->torsoSkin || !pi->headSkin ) {
+			glowSkinRegistered = qfalse;
+		}
+		else {
+			pi->glowModel = qtrue;
+		}
+	}
+	pi->glowColor[0] = ( g_color_table[color][0] * 255 );
+	pi->glowColor[1] = ( g_color_table[color][1] * 255 );
+	pi->glowColor[2] = ( g_color_table[color][2] * 255 );
+	pi->glowColor[3] = 255;
+
+
 	// if any skins failed to load, fall back to default
-	if ( !UI_RegisterClientSkin( pi, modelName, skinName ) ) {
+	if ( !glowSkinRegistered && !UI_RegisterClientSkin( pi, modelName, skinName ) ) {
 		if ( !UI_RegisterClientSkin( pi, modelName, "default" ) ) {
 			Com_Printf( "Failed to load skin file: %s : %s\n", modelName, skinName );
 			return qfalse;
@@ -1165,8 +1304,8 @@ qboolean UI_RegisterClientModelname( playerInfo_t *pi, const char *modelSkinName
 	}
 
 	// load the animations
-	Com_sprintf( filename, sizeof( filename ), "models/players/%s/animation.cfg", modelName );
-	if ( !UI_ParseAnimationFile( filename, pi ) ) {
+	Com_sprintf( filename, sizeof( filename ), "models/wop_players/%s/animation.cfg", modelName );
+	if ( !UI_ParseAnimationFile( filename, pi->animations ) ) {
 		Com_Printf( "Failed to load animation file %s\n", filename );
 		return qfalse;
 	}
@@ -1183,7 +1322,7 @@ UI_PlayerInfo_SetModel
 void UI_PlayerInfo_SetModel( playerInfo_t *pi, const char *model ) {
 	memset( pi, 0, sizeof(*pi) );
 	UI_RegisterClientModelname( pi, model );
-	pi->weapon = WP_MACHINEGUN;
+	pi->weapon = WP_NIPPER;
 	pi->currentWeapon = pi->weapon;
 	pi->lastWeapon = pi->weapon;
 	pi->pendingWeapon = WP_NUM_WEAPONS;
@@ -1202,10 +1341,10 @@ UI_PlayerInfo_SetInfo
 void UI_PlayerInfo_SetInfo( playerInfo_t *pi, int legsAnim, int torsoAnim, vec3_t viewAngles, vec3_t moveAngles, weapon_t weaponNumber, qboolean chat ) {
 	int			currentAnim;
 	weapon_t	weaponNum;
-	int			c;
+//	int			c;
 
 	pi->chat = chat;
-
+/*
 	c = (int)trap_Cvar_VariableValue( "color1" );
  
 	VectorClear( pi->color1 );
@@ -1231,7 +1370,7 @@ void UI_PlayerInfo_SetInfo( playerInfo_t *pi, int legsAnim, int torsoAnim, vec3_
 	pi->c1RGBA[1] = 255 * pi->color1[1];
 	pi->c1RGBA[2] = 255 * pi->color1[2];
 	pi->c1RGBA[3] = 255;
-
+*/
 	// view angles
 	VectorCopy( viewAngles, pi->viewAngles );
 
@@ -1304,7 +1443,7 @@ void UI_PlayerInfo_SetInfo( playerInfo_t *pi, int legsAnim, int torsoAnim, vec3_
 
 	// torso animation
 	if ( torsoAnim == TORSO_STAND || torsoAnim == TORSO_STAND2 ) {
-		if ( weaponNum == WP_NONE || weaponNum == WP_GAUNTLET ) {
+		if ( weaponNum == WP_NONE || weaponNum == WP_PUNCHY ) {
 			torsoAnim = TORSO_STAND2;
 		}
 		else {
@@ -1313,7 +1452,7 @@ void UI_PlayerInfo_SetInfo( playerInfo_t *pi, int legsAnim, int torsoAnim, vec3_
 	}
 
 	if ( torsoAnim == TORSO_ATTACK || torsoAnim == TORSO_ATTACK2 ) {
-		if ( weaponNum == WP_NONE || weaponNum == WP_GAUNTLET ) {
+		if ( weaponNum == WP_NONE || weaponNum == WP_PUNCHY ) {
 			torsoAnim = TORSO_ATTACK2;
 		}
 		else {

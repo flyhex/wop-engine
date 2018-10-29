@@ -1,24 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 // client.h -- primary header for client
 
 #include "../qcommon/q_shared.h"
@@ -246,6 +239,7 @@ typedef struct {
 	int voipIncomingSequence[MAX_CLIENTS];
 	float voipGain[MAX_CLIENTS];
 	qboolean voipIgnore[MAX_CLIENTS];
+	int voipLastPacket[MAX_CLIENTS];
 	qboolean voipMuteAll;
 
 	// outgoing data...
@@ -302,7 +296,6 @@ typedef struct {
 	int			maxPing;
 	int			ping;
 	qboolean	visible;
-	int			punkbuster;
 	int			g_humanplayers;
 	int			g_needpass;
 } serverInfo_t;
@@ -498,6 +491,14 @@ typedef struct {
 	qboolean	wasPressed;		// set when down, not cleared when up
 } kbutton_t;
 
+extern	kbutton_t	in_mlook, in_klook;
+extern 	kbutton_t 	in_strafe;
+extern 	kbutton_t 	in_speed;
+
+#ifdef USE_VOIP
+extern 	kbutton_t 	in_voiprecord;
+#endif
+
 void CL_InitInput(void);
 void CL_ShutdownInput(void);
 void CL_SendCmd (void);
@@ -597,6 +598,22 @@ void CIN_SetExtents (int handle, int x, int y, int w, int h);
 void CIN_SetLooping (int handle, qboolean loop);
 void CIN_UploadCinematic(int handle);
 void CIN_CloseAllVideos(void);
+// yuv->rgb will be used for Theora(ogm)
+//static void ROQ_GenYUVTables( void );
+void Frame_yuv_to_rgb24( const unsigned char* y, const unsigned char* u, const unsigned char* v,
+						int width, int height, int y_stride, int uv_stride,
+						int yWShift, int uvWShift, int yHShift, int uvHShift,
+						unsigned int* output );
+
+//
+// cin_ogm.c
+//
+
+int Cin_OGM_Init(const char* filename);
+int Cin_OGM_Run(int time);
+unsigned char* Cin_OGM_GetOutput(int* outWidth, int* outHeight);
+void Cin_OGM_Shutdown(void);
+
 
 //
 // cl_cgame.c

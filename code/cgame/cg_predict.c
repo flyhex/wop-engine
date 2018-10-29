@@ -1,25 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 // cg_predict.c -- this file generates cg.predictedPlayerState by either
 // interpolating between snapshots from the server or locally predicting
 // ahead the client's movement.
@@ -273,6 +265,24 @@ static void CG_TouchItem( centity_t *cent ) {
 		return;
 	}
 
+	// don't pickup own items (used for SyC-Cartridges)
+	if( cent->currentState.otherEntityNum == cg.snap->ps.clientNum)
+		return;
+
+	// don't Predict PickUp of >8 Cartridges
+	// ... this isn't in BG_CanItemBeGrabbed, because on the serverside it is also handled outside of bg...
+	if(bg_itemlist[cent->currentState.modelindex].giTag==WP_SPRAYPISTOL) {
+		gitem_t	*item = &bg_itemlist[cent->currentState.modelindex];
+		if( ((!strcmp(item->classname,"ammo_spray_b") && cg.predictedPlayerState.persistant[PERS_TEAM]==TEAM_BLUE)  ||
+			 (!strcmp(item->classname,"ammo_spray_r") && cg.predictedPlayerState.persistant[PERS_TEAM]==TEAM_RED) ||
+			 !strcmp(item->classname,"ammo_spray_n"))
+			&& cg.predictedPlayerState.ammo[WP_SPRAYPISTOL]>=8 )
+		{
+			return; // can't hold more than 8 usable cartridges
+		}
+	}
+
+
 	if ( !BG_CanItemBeGrabbed( cgs.gametype, &cent->currentState, &cg.predictedPlayerState ) ) {
 		return;		// can't hold it
 	}
@@ -281,13 +291,6 @@ static void CG_TouchItem( centity_t *cent ) {
 
 	// Special case for flags.  
 	// We don't predict touching our own flag
-#ifdef MISSIONPACK
-	if( cgs.gametype == GT_1FCTF ) {
-		if( item->giType == IT_TEAM && item->giTag != PW_NEUTRALFLAG ) {
-			return;
-		}
-	}
-#endif
 	if( cgs.gametype == GT_CTF ) {
 		if (cg.predictedPlayerState.persistant[PERS_TEAM] == TEAM_RED &&
 			item->giType == IT_TEAM && item->giTag == PW_REDFLAG)
@@ -367,8 +370,12 @@ static void CG_TouchTriggerPrediction( void ) {
 			continue;
 		}
 
-		if ( ent->eType == ET_TELEPORT_TRIGGER ) {
-			cg.hyperspace = qtrue;
+		if ( ent->eType == ET_TELEPORT_TRIGGER &&
+			(cg.snap->ps.persistant[PERS_TEAM]==TEAM_SPECTATOR || cg.snap->ps.ammo[WP_SPRAYPISTOL] || ent->generic1!=0x23) )
+		{
+			// the hyperspace-effect is realy ugly ... and it can only be seen, if there are big lags or high ping
+//			cg.hyperspace = qtrue;
+
 		} else if ( ent->eType == ET_PUSH_TRIGGER ) {
 			BG_TouchJumpPad( &cg.predictedPlayerState, ent );
 		}
@@ -581,8 +588,9 @@ void CG_PredictPlayerState( void ) {
 			cg_pmove.cmd.serverTime = ((cg_pmove.cmd.serverTime + pmove_msec.integer-1) / pmove_msec.integer) * pmove_msec.integer;
 		}
 
-		Pmove (&cg_pmove);
+		cg_pmove.gametype = cgs.gametype;
 
+		Pmove( &cg_pmove );
 		moved = qtrue;
 
 		// add push trigger movement effects

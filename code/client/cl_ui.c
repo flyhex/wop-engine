@@ -1,24 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 
 #include "client.h"
 
@@ -297,7 +289,6 @@ static void LAN_GetServerInfo( int source, int n, char *buf, int buflen ) {
 		Info_SetValueForKey( info, "gametype", va("%i",server->gameType));
 		Info_SetValueForKey( info, "nettype", va("%i",server->netType));
 		Info_SetValueForKey( info, "addr", NET_AdrToStringwPort(server->adr));
-		Info_SetValueForKey( info, "punkbuster", va("%i", server->punkbuster));
 		Info_SetValueForKey( info, "g_needpass", va("%i", server->g_needpass));
 		Info_SetValueForKey( info, "g_humanplayers", va("%i", server->g_humanplayers));
 		Q_strncpyz(buf, info, buflen);
@@ -676,6 +667,41 @@ static void CLUI_SetCDKey( char *buf ) {
 }
 #endif
 
+static float CLUI_GetVoiceGain( const int id ) {
+#ifndef USE_VOIP
+		return 0;
+#else	
+	if ( ( id < 0 ) || ( id >= ( sizeof( clc.voipGain ) / sizeof( clc.voipGain[0] ) ) ) ) {
+		return 0;
+	}
+
+	// TODO: make sure server is running
+	return clc.voipGain[id];
+#endif
+}
+
+static int CLUI_GetVoiceMuteClient( const int id ) {
+#ifndef USE_VOIP
+	return 0;
+#else
+	if ( ( id < 0 ) || ( id >= ( sizeof( clc.voipIgnore ) / sizeof( clc.voipIgnore[0] ) ) ) ) {
+		return 0;
+	}
+
+	// TODO: make sure server is running
+	return clc.voipIgnore[id];
+#endif
+}
+
+static int CLUI_GetVoiceMuteAll( void ) {
+#ifndef USE_VOIP
+	return 0;
+#else
+	// TODO: make sure server is running
+	return clc.voipMuteAll;
+#endif
+}
+
 /*
 ====================
 GetConfigString
@@ -995,6 +1021,15 @@ intptr_t CL_UISystemCalls( intptr_t *args ) {
 	case UI_R_REGISTERFONT:
 		re.RegisterFont( VMA(1), args[2], VMA(3));
 		return 0;
+		
+	case UI_GET_VOICEMUTECLIENT:
+		return CLUI_GetVoiceMuteClient(args[1]);
+
+	case UI_GET_VOICEMUTEALL:
+		return CLUI_GetVoiceMuteAll();
+
+	case UI_GET_VOICEGAIN:
+		return FloatAsInt( CLUI_GetVoiceGain(args[1]) );
 
 	case UI_MEMSET:
 		Com_Memset( VMA(1), args[2], args[3] );
@@ -1129,10 +1164,6 @@ void CL_InitUI( void ) {
 		VM_Call( uivm, UI_INIT, (clc.state >= CA_AUTHORIZING && clc.state < CA_ACTIVE));
 	}
 	else if (v != UI_API_VERSION) {
-		// Free uivm now, so UI_SHUTDOWN doesn't get called later.
-		VM_Free( uivm );
-		uivm = NULL;
-
 		Com_Error( ERR_DROP, "User Interface is version %d, expected %d", v, UI_API_VERSION );
 		cls.uiStarted = qfalse;
 	}

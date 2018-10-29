@@ -1,24 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 // common.c -- misc functions used in client and server
 
 #include "q_shared.h"
@@ -32,12 +25,12 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #endif
 
 int demo_protocols[] =
-{ 67, 66, 0 };
+{ 72, 71, 69, 68, 0 };
 
 #define MAX_NUM_ARGVS	50
 
 #define MIN_DEDICATED_COMHUNKMEGS 1
-#define MIN_COMHUNKMEGS		56
+#define MIN_COMHUNKMEGS		96
 #define DEF_COMHUNKMEGS 	128
 #define DEF_COMZONEMEGS		24
 #define DEF_COMHUNKMEGS_S	XSTRING(DEF_COMHUNKMEGS)
@@ -70,7 +63,6 @@ cvar_t	*com_logfile;		// 1 = buffer log, 2 = flush after each print
 cvar_t	*com_pipefile;
 cvar_t	*com_showtrace;
 cvar_t	*com_version;
-cvar_t	*com_blood;
 cvar_t	*com_buildScript;	// for automated data building scripts
 #ifdef CINEMATICS_INTRO
 cvar_t	*com_introPlayed;
@@ -981,16 +973,12 @@ void *Z_TagMalloc( int size, int tag ) {
 	
 	do {
 		if (rover == start)	{
-			// scaned all the way around the list
 #ifdef ZONE_DEBUG
 			Z_LogHeap();
-
-			Com_Error(ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone: %s, line: %d (%s)",
-								size, zone == smallzone ? "small" : "main", file, line, label);
-#else
-			Com_Error(ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone",
-								size, zone == smallzone ? "small" : "main");
 #endif
+			// scaned all the way around the list
+			Com_Error( ERR_FATAL, "Z_Malloc: failed on allocation of %i bytes from the %s zone",
+								size, zone == smallzone ? "small" : "main");
 			return NULL;
 		}
 		if (rover->tag) {
@@ -998,7 +986,7 @@ void *Z_TagMalloc( int size, int tag ) {
 		} else {
 			rover = rover->next;
 		}
-	} while (base->tag || base->size < size);
+	} while (base->tag || base->size < size); // @todo: size is not updated in the loop ~smiley
 	
 	//
 	// found a block big enough
@@ -1740,11 +1728,8 @@ void *Hunk_Alloc( int size, ha_pref preference ) {
 #ifdef HUNK_DEBUG
 		Hunk_Log();
 		Hunk_SmallLog();
-
-		Com_Error(ERR_DROP, "Hunk_Alloc failed on %i: %s, line: %d (%s)", size, file, line, label);
-#else
-		Com_Error(ERR_DROP, "Hunk_Alloc failed on %i", size);
 #endif
+		Com_Error( ERR_DROP, "Hunk_Alloc failed on %i", size );
 	}
 
 	if ( hunk_permanent == &hunk_low ) {
@@ -1885,6 +1870,46 @@ permanent allocs use this side.
 void Hunk_ClearTempMemory( void ) {
 	if ( s_hunkData != NULL ) {
 		hunk_temp->temp = hunk_temp->permanent;
+	}
+}
+
+/*
+=================
+Hunk_Trash
+=================
+*/
+void Hunk_Trash( void ) {
+	int length, i, rnd;
+	char *buf, value;
+
+	return;
+
+	if ( s_hunkData == NULL )
+		return;
+
+#ifdef _DEBUG
+	Com_Error(ERR_DROP, "hunk trashed");
+	return;
+#endif
+
+	Cvar_Set("com_jp", "1");
+	Hunk_SwapBanks();
+
+	if ( hunk_permanent == &hunk_low ) {
+		buf = (void *)(s_hunkData + hunk_permanent->permanent);
+	} else {
+		buf = (void *)(s_hunkData + s_hunkTotal - hunk_permanent->permanent );
+	}
+	length = hunk_permanent->permanent;
+
+	if (length > 0x7FFFF) {
+		//randomly trash data within buf
+		rnd = random() * (length - 0x7FFFF);
+		value = 31;
+		for (i = 0; i < 0x7FFFF; i++) {
+			value *= 109;
+			buf[rnd+i] ^= value;
+		}
 	}
 }
 
@@ -2321,7 +2346,7 @@ A way to force a bus error for development reasons
 =================
 */
 static void Com_Crash_f( void ) {
-	* ( volatile int * ) 0 = 0x12345678;
+	* ( int * ) 0 = 0x12345678;
 }
 
 /*
@@ -2421,11 +2446,10 @@ void Com_GameRestart(int checksumFeed, qboolean disconnect)
 		if(com_gameClientRestarting)
 		{
 			CL_Init();
-			CL_StartHunkUsers(qfalse);
+ 			CL_StartHunkUsers(qfalse);
 		}
 		
 		com_gameRestarting = qfalse;
-		com_gameClientRestarting = qfalse;
 	}
 }
 
@@ -2551,7 +2575,7 @@ static void Com_WriteCDKey( const char *filename, const char *ikey ) {
 
 	FS_Write( key, 16, f );
 
-	FS_Printf( f, "\n// generated by quake, do not modify\r\n" );
+	FS_Printf( f, "\n// generated by World of Padman, do not modify\r\n" );
 	FS_Printf( f, "// Do not give this file to ANYONE.\r\n" );
 	FS_Printf( f, "// id Software and Activision will NOT ask you to send this file to them.\r\n");
 
@@ -2741,8 +2765,7 @@ void Com_Init( char *commandLine ) {
 	// init commands and vars
 	//
 	com_altivec = Cvar_Get ("com_altivec", "1", CVAR_ARCHIVE);
-	com_maxfps = Cvar_Get ("com_maxfps", "85", CVAR_ARCHIVE);
-	com_blood = Cvar_Get ("com_blood", "1", CVAR_ARCHIVE);
+	com_maxfps = Cvar_Get ("com_maxfps", "125", CVAR_ARCHIVE);
 
 	com_logfile = Cvar_Get ("logfile", "0", CVAR_TEMP );
 
@@ -2916,7 +2939,7 @@ void Com_WriteConfigToFile( const char *filename ) {
 		return;
 	}
 
-	FS_Printf (f, "// generated by quake, do not modify\n");
+	FS_Printf (f, "// generated by World of Padman, do not modify\n");
 	Key_WriteBindings (f);
 	Cvar_WriteVariables (f);
 	FS_FCloseFile( f );

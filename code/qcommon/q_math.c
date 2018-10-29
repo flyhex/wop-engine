@@ -1,25 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 // q_math.c -- stateless support routines that are included in each code module
 
 // Some of the vector functions are static inline in q_shared.h. q3asm
@@ -46,6 +38,13 @@ vec4_t		colorWhite	= {1, 1, 1, 1};
 vec4_t		colorLtGrey	= {0.75, 0.75, 0.75, 1};
 vec4_t		colorMdGrey	= {0.5, 0.5, 0.5, 1};
 vec4_t		colorDkGrey	= {0.25, 0.25, 0.25, 1};
+vec4_t		colorTBlack33	= {0, 0, 0, 0.33f};
+vec4_t		colorTBlack66	= {0, 0, 0, 0.66f};
+vec4_t		colorDkGreen	= {0, 0.5f, 0, 1};
+vec4_t		colorDkBlue		= {0, 0, 0.5f, 1};
+vec4_t		colorDkRed		= {0.5f, 0, 0, 1};
+vec4_t		colorDkLilac	= {0.4f, 0, 0.4f, 1};
+vec4_t		colorDkOrange	= {0.75f, 0.3f, 0, 1};
 
 vec4_t	g_color_table[8] =
 	{
@@ -58,6 +57,16 @@ vec4_t	g_color_table[8] =
 	{1.0, 0.0, 1.0, 1.0},
 	{1.0, 1.0, 1.0, 1.0},
 	};
+
+// FIXME: Move into bg
+vec4_t	spraycolors[] = {
+	{ 0.0, 1.0, 0.0, 1.0 },
+	{ 1.0, 0.0, 0.0, 1.0 },
+	{ 1.0, 1.0, 0.0, 1.0 },
+	{ 0.0, 0.0, 1.0, 1.0 },
+	{ 1.0, 1.0, 1.0, 1.0 },
+	{ 0.0, 0.0, 0.0, 1.0 }
+};
 
 
 vec3_t	bytedirs[NUMVERTEXNORMALS] =
@@ -439,6 +448,13 @@ void AxisCopy( vec3_t in[3], vec3_t out[3] ) {
 	VectorCopy( in[2], out[2] );
 }
 
+//by HERBY ...
+void AxisScale( vec3_t in[3], float s, vec3_t out[3] ) {
+	VectorScale( in[0], s, out[0] );
+	VectorScale( in[1], s, out[1] );
+	VectorScale( in[2], s, out[2] );
+}
+
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
 	float d;
@@ -447,7 +463,7 @@ void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 
 	inv_denom =  DotProduct( normal, normal );
 #ifndef Q3_VM
-	assert( Q_fabs(inv_denom) != 0.0f ); // zero vectors get here
+//	assert( Q_fabs(inv_denom) != 0.0f ); // bk010122 - zero vectors get here
 #endif
 	inv_denom = 1.0f / inv_denom;
 
@@ -491,6 +507,14 @@ void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out )
 	out[0] = DotProduct( in, matrix[0] );
 	out[1] = DotProduct( in, matrix[1] );
 	out[2] = DotProduct( in, matrix[2] );
+}
+
+//HERBY ... herby used the VectorRotate with a "transponierten Matrix" ;)
+void VectorRotateTMatrix( vec3_t in, vec3_t matrix[3], vec3_t out )
+{
+	out[0] = matrix[0][0]*in[0] + matrix[1][0]*in[1] + matrix[2][0]*in[2];
+	out[1] = matrix[0][1]*in[0] + matrix[1][1]*in[1] + matrix[2][1]*in[2];
+	out[2] = matrix[0][2]*in[0] + matrix[1][2]*in[1] + matrix[2][2]*in[2];
 }
 
 //============================================================================
@@ -746,7 +770,7 @@ qboolean BoundsIntersect(const vec3_t mins, const vec3_t maxs,
 	{
 		return qfalse;
 	}
-
+ 
 	return qtrue;
 }
 
@@ -783,7 +807,6 @@ qboolean BoundsIntersectPoint(const vec3_t mins, const vec3_t maxs,
 }
 
 vec_t VectorNormalize( vec3_t v ) {
-	// NOTE: TTimo - Apple G4 altivec source uses double?
 	float	length, ilength;
 
 	length = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
@@ -808,6 +831,9 @@ vec_t VectorNormalize2( const vec3_t v, vec3_t out) {
 
 	if (length)
 	{
+#ifndef Q3_VM // bk0101022 - FPE related
+//	  assert( ((Q_fabs(v[0])!=0.0f) || (Q_fabs(v[1])!=0.0f) || (Q_fabs(v[2])!=0.0f)) );
+#endif
 		/* writing it this way allows gcc to recognize that rsqrt can be used */
 		ilength = 1/(float)sqrt (length);
 		/* sqrt(length) = length * (1 / sqrt(length)) */
@@ -816,6 +842,9 @@ vec_t VectorNormalize2( const vec3_t v, vec3_t out) {
 		out[1] = v[1]*ilength;
 		out[2] = v[2]*ilength;
 	} else {
+#ifndef Q3_VM // bk0101022 - FPE related
+//	  assert( ((Q_fabs(v[0])==0.0f) && (Q_fabs(v[1])==0.0f) && (Q_fabs(v[2])==0.0f)) );
+#endif
 		VectorClear( out );
 	}
 		
@@ -1011,6 +1040,7 @@ int Q_isnan( float x )
 
 	return (int)( (unsigned int)fi.ui >> 31 );
 }
+
 //------------------------------------------------------------------------
 
 #ifndef Q3_VM
@@ -1040,3 +1070,4 @@ float Q_acos(float c) {
 	return angle;
 }
 #endif
+

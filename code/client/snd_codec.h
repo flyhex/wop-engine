@@ -1,25 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
-Copyright (C) 2005 Stuart Dalton (badcdev@gmail.com)
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 
 #ifndef _SND_CODEC_H_
 #define _SND_CODEC_H_
@@ -94,6 +85,15 @@ snd_stream_t *S_OGG_CodecOpenStream(const char *filename);
 void S_OGG_CodecCloseStream(snd_stream_t *stream);
 int S_OGG_CodecReadStream(snd_stream_t *stream, int bytes, void *buffer);
 #endif // USE_CODEC_VORBIS
+
+// MP3 codec
+#ifdef USE_CODEC_MP3
+extern snd_codec_t mp3_codec;
+void *S_MP3_CodecLoad(const char *filename, snd_info_t *info);
+snd_stream_t *S_MP3_CodecOpenStream(const char *filename);
+void S_MP3_CodecCloseStream(snd_stream_t *stream);
+int S_MP3_CodecReadStream(snd_stream_t *stream, int bytes, void *buffer);
+#endif // USE_CODEC_MP3
 
 // Ogg Opus codec
 #ifdef USE_CODEC_OPUS

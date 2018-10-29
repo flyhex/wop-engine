@@ -1,25 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 //
 // gameinfo.c
 //
@@ -184,7 +176,7 @@ static void UI_LoadArenas( void ) {
 		UI_LoadArenasFromFile(arenasFile.string);
 	}
 	else {
-		UI_LoadArenasFromFile("scripts/arenas.txt");
+//		UI_LoadArenasFromFile("scripts/arenas.txt");
 	}
 
 	// get all arenas from .arena files
@@ -371,7 +363,7 @@ static void UI_LoadBots( void ) {
 		UI_LoadBotsFromFile(botsFile.string);
 	}
 	else {
-		UI_LoadBotsFromFile("scripts/bots.txt");
+//		UI_LoadBotsFromFile("scripts/bots.txt");
 	}
 
 	// get all bots from .bot files
@@ -796,7 +788,99 @@ void UI_SPUnlockMedals_f( void ) {
 
 	trap_Cvar_Set( "g_spAwards", awardData );
 
-	trap_Print( "All awards unlocked at 100\n" );
+	trap_Print( "All levels unlocked at 100\n" );
+}
+
+void UI_LoadLogoForMenu( const char *spraylogoName ) {
+	if ( uis.spraylogosLoaded >= MAX_SPRAYLOGOS_LOADED ) {
+		return;
+	}
+
+	Q_strncpyz( uis.spraylogoNames[uis.spraylogosLoaded], spraylogoName, sizeof( uis.spraylogoNames[uis.spraylogosLoaded] ) );
+	uis.spraylogoShaders[uis.spraylogosLoaded] = trap_R_RegisterShaderNoMip(va( SPRAYLOGO_PATH"/%s", spraylogoName ) );
+	uis.spraylogosLoaded++;
+}
+
+
+//
+// Since cgame can't do trap_FS_GetFileList, we need to load the list of
+// spraylogos here.
+// While we do so, register them for the player setup menu aswell.
+// We have to do this regardless of the actual gametype, since the cvar
+// used for communication is not CVAR_ARCHIVE (which is intended) and the menu
+// always shows the spraylogo selection.
+//
+void UI_SearchSpraylogos( void ) {
+	int		i;
+	char	fileList[1024];
+	char	*namePtr;
+	int		numFiles;
+	int		nameLen;
+	char	cvarBuff[1024];
+	
+
+	numFiles = trap_FS_GetFileList( "spraylogos", NULL, fileList, sizeof( fileList ) );
+
+	Com_Printf( "Loading spraylogos:\n" );
+	
+	cvarBuff[0] = '\0';
+	namePtr = fileList;
+	for ( i = 0; i < numFiles; i++, namePtr += ( nameLen + 1 ) ) {
+		char *ext = strchr( namePtr, '.' );
+	
+		nameLen = strlen( namePtr );
+		
+		// ignore anything but jpg and tga
+		if( !nameLen 
+			|| !ext 
+			|| ( Q_stricmp(".jpg", Q_strlwr(ext)) != 0 && Q_stricmp(".tga", Q_strlwr(ext)) != 0 )
+			)
+			continue;
+
+		*ext = '\0';
+
+		Com_Printf( "%s ", namePtr );
+
+		Q_strcat( cvarBuff, sizeof( cvarBuff ), va( "%s\\", namePtr ) );
+	
+		UI_LoadLogoForMenu( namePtr );
+	}
+
+	Com_Printf( "\nLoaded %i spraylogos.\n", i );
+
+	i = ( strlen( cvarBuff ) - 1 );
+	if ( cvarBuff[i] == '\\' ) {
+		cvarBuff[i] = '\0';
+	}
+
+	trap_Cvar_Set( SPRAYLOGO_LIST_CVAR, cvarBuff );
+}
+
+void UI_SearchLensFlares(void)
+{
+	char			dirlist[1024];
+	char			tmpcvarstr[1024];
+	char			*filestrptr;
+	int				dirlen, numdirs, i;
+	char			scriptname[32];//reicht scho ;)
+
+	Com_Printf("searching LensFlare-scripts:\n");
+	numdirs = trap_FS_GetFileList("scripts", ".lensflare", dirlist, 1024 );
+	filestrptr  = dirlist;
+	tmpcvarstr[0]='\0';
+	for (i = 0; i < numdirs; i++, filestrptr += dirlen+1) {
+		dirlen = strlen(filestrptr);
+		Q_strncpyz(scriptname,filestrptr,32);
+		*strstr(scriptname,".lensflare")='\0';
+		Com_Printf("Script:%i Name:%s\n",i,scriptname);
+		Q_strcat(tmpcvarstr,1024,va("%s\\",scriptname));
+	}
+	Com_Printf("finished searching ... found %i scripts\n",numdirs);
+
+	i=strlen(tmpcvarstr)-1;
+	if(tmpcvarstr[i]=='\\')tmpcvarstr[i]='\0';
+
+	trap_Cvar_Set("lensflarelist",tmpcvarstr);
 }
 
 
@@ -811,5 +895,14 @@ void UI_InitGameinfo( void ) {
 	UI_LoadArenas();
 	UI_LoadBots();
 
-	uis.demoversion = qfalse;
+	UI_SearchSpraylogos();
+
+	UI_SearchLensFlares();
+
+	if( (trap_Cvar_VariableValue( "fs_restrict" )) || (ui_numSpecialSinglePlayerArenas == 0 && ui_numSinglePlayerArenas == 4) ) {
+		uis.demoversion = qtrue;
+	}
+	else {
+		uis.demoversion = qfalse;
+	}
 }

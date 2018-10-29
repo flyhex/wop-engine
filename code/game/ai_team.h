@@ -1,39 +1,27 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 
 /*****************************************************************************
  * name:		ai_team.h
  *
- * desc:		Quake3 bot AI
- *
- * $Archive: /source/code/botai/ai_chat.c $
- *
+ * desc:		WoP bot AI
  *****************************************************************************/
 
 void BotTeamAI(bot_state_t *bs);
 int BotGetTeamMateTaskPreference(bot_state_t *bs, int teammate);
 void BotSetTeamMateTaskPreference(bot_state_t *bs, int teammate, int preference);
-void BotVoiceChat(bot_state_t *bs, int toclient, char *voicechat);
-void BotVoiceChatOnly(bot_state_t *bs, int toclient, char *voicechat);
 
+int BotClientTravelTimeToGoal(int client, bot_goal_t *goal);
+int BotGetTeammates(bot_state_t *bs, int *teammates, int maxteammates);
 

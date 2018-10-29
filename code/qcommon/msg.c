@@ -1,3 +1,5 @@
+// @todo: unsure about the changes in this one ~smiley
+
 /*
 ===========================================================================
 Copyright (C) 1999-2005 Id Software, Inc.
@@ -328,7 +330,7 @@ void MSG_WriteString( msg_t *sb, const char *s ) {
 
 		// get rid of 0x80+ and '%' chars, because old clients don't like them
 		for ( i = 0 ; i < l ; i++ ) {
-			if ( ((byte *)string)[i] > 127 || string[i] == '%' ) {
+			if ( ((byte *)string)[i] == 0xFF || string[i] == '%' ) {
 				string[i] = '.';
 			}
 		}
@@ -354,7 +356,7 @@ void MSG_WriteBigString( msg_t *sb, const char *s ) {
 
 		// get rid of 0x80+ and '%' chars, because old clients don't like them
 		for ( i = 0 ; i < l ; i++ ) {
-			if ( ((byte *)string)[i] > 127 || string[i] == '%' ) {
+			if ( ((byte *)string)[i] == 0xFF || string[i] == '%' ) {
 				string[i] = '.';
 			}
 		}
@@ -459,7 +461,8 @@ char *MSG_ReadString( msg_t *msg ) {
 			c = '.';
 		}
 		// don't allow higher ascii values
-		if ( c > 127 ) {
+//		if ( c > 127 ) {
+		if ( c == 0xff ) {
 			c = '.';
 		}
 		// break only after reading all expected data from bitstream
@@ -489,7 +492,8 @@ char *MSG_ReadBigString( msg_t *msg ) {
 			c = '.';
 		}
 		// don't allow higher ascii values
-		if ( c > 127 ) {
+//		if ( c > 127 ) {
+		if ( c == 0xff ) {
 			c = '.';
 		}
 		// break only after reading all expected data from bitstream
@@ -519,7 +523,8 @@ char *MSG_ReadStringLine( msg_t *msg ) {
 			c = '.';
 		}
 		// don't allow higher ascii values
-		if ( c > 127 ) {
+//		if ( c > 127 ) {
+		if ( c == 0xff ) {
 			c = '.';
 		}
 		// break only after reading all expected data from bitstream

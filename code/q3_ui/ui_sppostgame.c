@@ -1,25 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 /*
 =============================================================================
 
@@ -87,12 +79,12 @@ char	*ui_medalPicNames[] = {
 	"menu/medals/medal_victory"
 };
 char	*ui_medalSounds[] = {
-	"sound/feedback/accuracy.wav",
-	"sound/feedback/impressive_a.wav",
-	"sound/feedback/excellent_a.wav",
-	"sound/feedback/gauntlet.wav",
-	"sound/feedback/frags.wav",
-	"sound/feedback/perfect.wav"
+	"sound/feedback/accuracy",
+	"sound/feedback/impressive_a",
+	"sound/feedback/excellent_a",
+	"sound/feedback/gauntlet",
+	"sound/feedback/frags",
+	"sound/feedback/perfect"
 };
 
 
@@ -417,9 +409,9 @@ void UI_SPPostgameMenu_Cache( void ) {
 	}
 
 	if( buildscript ) {
-		trap_S_RegisterSound( "music/loss.wav", qfalse );
-		trap_S_RegisterSound( "music/win.wav", qfalse );
-		trap_S_RegisterSound( "sound/player/announce/youwin.wav", qfalse );
+		trap_S_RegisterSound( "music/loss", qfalse );
+		trap_S_RegisterSound( "music/win", qfalse );
+		trap_S_RegisterSound( "sound/player/announce/youwin", qfalse );
 	}
 }
 
@@ -627,11 +619,11 @@ void UI_SPPostgameMenu_f( void ) {
 	Prepname( 2 );
 
 	if ( playerGameRank != 1 ) {
-		postgameMenuInfo.winnerSound = trap_S_RegisterSound( va( "sound/player/announce/%s_wins.wav", postgameMenuInfo.placeNames[0] ), qfalse );
+		postgameMenuInfo.winnerSound = trap_S_RegisterSound( va( "sound/wop_player/announce/%s_wins", postgameMenuInfo.placeNames[0] ), qfalse );
 		trap_Cmd_ExecuteText( EXEC_APPEND, "music music/loss\n" );
 	}
 	else {
-		postgameMenuInfo.winnerSound = trap_S_RegisterSound( "sound/player/announce/youwin.wav", qfalse );
+		postgameMenuInfo.winnerSound = trap_S_RegisterSound( "sound/player/announce/youwin", qfalse );
 		trap_Cmd_ExecuteText( EXEC_APPEND, "music music/win\n" );
 	}
 

@@ -1,24 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 
 /*****************************************************************************
  * name:		be_aas_main.c
@@ -47,6 +39,8 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 aas_t aasworld;
 
 libvar_t *saveroutingcache;
+int showroute_ent = 0;	// cyr
+int showroute_entarea = 0;	// cyr
 
 //===========================================================================
 //
@@ -138,6 +132,66 @@ void AAS_ContinueInit(float time)
 	//at this point AAS is initialized
 	AAS_SetInitialized();
 } //end of the function AAS_ContinueInit
+
+//cyr
+void ShowReachesFrom(void){
+	int reachnum, areanum;
+	aas_reachability_t reach;
+	vec3_t origin;
+	aas_entityinfo_t entinfo;
+
+	// client0 position
+	AAS_EntityInfo(0, &entinfo);
+	areanum = AAS_PointAreaNum(entinfo.origin);
+
+	VectorCopy(entinfo.origin, origin);
+	origin[2] -= 20;	// player height... how much is it?
+
+	if(!areanum) return;
+	for (reachnum = AAS_NextAreaReachability(areanum, 0); reachnum;
+		reachnum = AAS_NextAreaReachability(areanum, reachnum)){
+		
+		AAS_ReachabilityFromNum(reachnum, &reach);
+		
+		//AAS_DrawArrow(entinfo.origin, reach.start, LINECOLOR_BLUE, LINECOLOR_YELLOW);
+		AAS_DebugLine(origin, reach.start, LINECOLOR_YELLOW);
+		AAS_ShowReachability(&reach);
+		AAS_ShowArea(reach.areanum, qtrue);
+
+		//botimport.Print(PRT_MESSAGE, " towards area %d \n", reach.areanum);
+	}
+}
+
+void ShowReachesTo(void){
+	int areanum;
+	aas_reachability_t* reach;
+//	vec3_t origin;
+	aas_entityinfo_t entinfo;
+	int linknum;
+	aas_reversedreachability_t *revreach;
+    aas_reversedlink_t *revlink;
+
+	// client0 position
+	AAS_EntityInfo(0, &entinfo);
+	areanum = AAS_PointAreaNum(entinfo.origin);
+
+	if(!areanum) return;
+	// iterate over all 
+	revreach = &aasworld.reversedreachability[areanum];
+        //
+        for (revlink = revreach->first; revlink; revlink = revlink->next){
+        	linknum = revlink->linknum;
+            reach = &aasworld.reachability[linknum];
+
+			//AAS_DrawArrow(entinfo.origin, reach->end, LINECOLOR_BLUE, LINECOLOR_YELLOW);
+			AAS_DebugLine(entinfo.origin, reach->end, LINECOLOR_BLUE);
+			AAS_ShowReachability(reach);
+			AAS_ShowArea(revlink->areanum, qtrue);
+
+			//botimport.Print(PRT_MESSAGE, " from area %d \n", revlink->areanum);
+        }
+}
+
 //===========================================================================
 // called at the start of every frame
 //
@@ -156,6 +210,10 @@ int AAS_StartFrame(float time)
 	AAS_ContinueInit(time);
 	//
 	aasworld.frameroutingupdates = 0;
+
+	AAS_ClearShownPolygons();
+	AAS_ClearShownDebugLines();
+
 	//
 	if (botDeveloper)
 	{
@@ -181,6 +239,47 @@ int AAS_StartFrame(float time)
 		AAS_WriteRouteCache();
 		LibVarSet("saveroutingcache", "0");
 	} //end if
+// cyr{
+	if ( LibVarGetValue("shownextitem") ){
+		/*
+		GetNextItemNumber(&showroute_ent, &showroute_entarea);
+		botimport.Print(PRT_MESSAGE, "avl %f next item: %d \n", LibVarGetValue("shownextitem"), showroute_ent);
+		PrintCurItemInfo();
+		ShowRoute(0, showroute_ent, showroute_entarea, qtrue);
+		*/
+		LibVarSet("shownextitem", "0");
+	}
+	if ( LibVarGetValue("shownoitem") ){
+		/*
+		showroute_ent = 0;
+		botimport.Print(PRT_MESSAGE, " %f dont show item route \n", LibVarGetValue("shownoitem") );
+		AAS_ClearShownPolygons();
+		AAS_ClearShownDebugLines();
+		*/
+		LibVarSet("shownoitem", "0");
+	}
+
+
+	if(showroute_ent != 0){
+		AAS_ClearShownPolygons();
+		AAS_ClearShownDebugLines();
+		ShowRoute(0, showroute_ent, showroute_entarea, qfalse);
+	}
+
+	if ( LibVarGetValue("showreachesfrom") ){
+		//botimport.Print(PRT_MESSAGE, " from \n");
+		AAS_ClearShownPolygons();
+		AAS_ClearShownDebugLines();
+		ShowReachesFrom();
+	}
+
+	if ( LibVarGetValue("showreachesto") ){
+		AAS_ClearShownPolygons();
+		AAS_ClearShownDebugLines();
+		ShowReachesTo();
+	}
+
+// cyr}
 	//
 	aasworld.numframes++;
 	return BLERR_NOERROR;

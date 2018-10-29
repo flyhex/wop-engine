@@ -1,26 +1,19 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 #include "g_local.h"
+#include "wopg_sphandling.h"
 
 
 /*
@@ -44,7 +37,12 @@ void G_WriteClientSessionData( gclient_t *client ) {
 	const char	*s;
 	const char	*var;
 
-	s = va("%i %i %i %i %i %i %i", 
+	// Spaces cause problems with sscanf
+	if ( strchr( client->sess.selectedlogo, ' ' ) ) {
+		client->sess.selectedlogo[0] = '\0';
+	}
+
+	s = va("%i %i %i %i %i %i %i %i %s", 
 		client->sess.sessionTeam,
 		client->sess.spectatorNum,
 		client->sess.spectatorState,
@@ -52,9 +50,11 @@ void G_WriteClientSessionData( gclient_t *client ) {
 		client->sess.wins,
 		client->sess.losses,
 		client->sess.teamLeader
+		,client->sess.livesleft
+		,client->sess.selectedlogo
 		);
 
-	var = va( "session%i", (int)(client - level.clients) );
+	var = va( "session%ld", client - level.clients );
 
 	trap_Cvar_Set( var, s );
 }
@@ -73,17 +73,19 @@ void G_ReadSessionData( gclient_t *client ) {
 	int spectatorState;
 	int sessionTeam;
 
-	var = va( "session%i", (int)(client - level.clients) );
+	var = va( "session%ld", client - level.clients );
 	trap_Cvar_VariableStringBuffer( var, s, sizeof(s) );
 
-	sscanf( s, "%i %i %i %i %i %i %i",
-		&sessionTeam,
+	sscanf( s, "%i %i %i %i %i %i %i %i %s",
+		&sessionTeam,                 // bk010221 - format
 		&client->sess.spectatorNum,
-		&spectatorState,
+		&spectatorState,              // bk010221 - format
 		&client->sess.spectatorClient,
 		&client->sess.wins,
 		&client->sess.losses,
-		&teamLeader
+		&teamLeader,                   // bk010221 - format
+		&client->sess.livesleft,
+		client->sess.selectedlogo
 		);
 
 	client->sess.sessionTeam = (team_t)sessionTeam;
@@ -118,14 +120,19 @@ void G_InitSessionData( gclient_t *client, char *userinfo ) {
 
 	// initial team determination
 	if ( g_gametype.integer >= GT_TEAM ) {
-		// always spawn as spectator in team games
-		sess->sessionTeam = TEAM_SPECTATOR;
-		sess->spectatorState = SPECTATOR_FREE;
-
-		if ( value[0] || g_teamAutoJoin.integer ) {
-			SetTeam( &g_entities[client - level.clients], value );
+		if(wopSP_hasForceTeam()) {
+			sess->sessionTeam = wopSP_forceTeam();
+			BroadcastTeamChange( client, -1 );
+		}
+		else if ( g_teamAutoJoin.integer ) {
+			sess->sessionTeam = PickTeam( -1 );
+			BroadcastTeamChange( client, -1 );
+		} else {
+			// always spawn as spectator in team games
+			sess->sessionTeam = TEAM_SPECTATOR;	
 		}
 	} else {
+//		value = Info_ValueForKey( userinfo, "team" );
 		if ( value[0] == 's' ) {
 			// a willing spectator, not a waiting-in-line
 			sess->sessionTeam = TEAM_SPECTATOR;
@@ -151,10 +158,12 @@ void G_InitSessionData( gclient_t *client, char *userinfo ) {
 				break;
 			}
 		}
-
-		sess->spectatorState = SPECTATOR_FREE;
 	}
 
+	sess->livesleft=0;
+	sess->selectedlogo[0]='\0';
+
+	sess->spectatorState = SPECTATOR_FREE;
 	AddTournamentQueue(client);
 
 	G_WriteClientSessionData( client );

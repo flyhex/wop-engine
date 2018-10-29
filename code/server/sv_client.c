@@ -1,24 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
 
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 // sv_client.c -- server code for dealing with clients
 
 #include "server.h"
@@ -60,7 +53,6 @@ void SV_GetChallenge(netadr_t from)
 	challenge_t	*challenge;
 	qboolean wasfound = qfalse;
 	char *gameName;
-	qboolean gameMismatch;
 
 	// ignore if we are in single player
 	if ( Cvar_VariableValue( "g_gametype" ) == GT_SINGLE_PLAYER || Cvar_VariableValue("ui_singlePlayerActive")) {
@@ -82,21 +74,15 @@ void SV_GetChallenge(netadr_t from)
 	}
 
 	gameName = Cmd_Argv(2);
-
-#ifdef LEGACY_PROTOCOL
-	// gamename is optional for legacy protocol
-	if (com_legacyprotocol->integer && !*gameName)
-		gameMismatch = qfalse;
-	else
-#endif
-		gameMismatch = !*gameName || strcmp(gameName, com_gamename->string) != 0;
-
-	// reject client if the gamename string sent by the client doesn't match ours
-	if (gameMismatch)
+	if(gameName && *gameName)
 	{
-		NET_OutOfBandPrint(NS_SERVER, from, "print\nGame mismatch: This is a %s server\n",
-			com_gamename->string);
-		return;
+		// reject client if the heartbeat string sent by the client doesn't match ours
+		if(strcmp(gameName, com_gamename->string))
+		{
+ 			NET_OutOfBandPrint(NS_SERVER, from, "print\nGame mismatch: This is a %s server\n",
+ 				com_gamename->string);
+			return;
+		}
 	}
 
 	oldest = 0;

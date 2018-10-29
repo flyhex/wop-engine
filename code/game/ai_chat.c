@@ -1,33 +1,21 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
-
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *               #@ (Raute), cyrri, Herby, PaulR, brain, Thilo               *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
+ 
 
 /*****************************************************************************
  * name:		ai_chat.c
  *
- * desc:		Quake3 bot AI
- *
- * $Archive: /MissionPack/code/game/ai_chat.c $
- *
+ * desc:		WoP bot AI
  *****************************************************************************/
 
 #include "g_local.h"
@@ -51,11 +39,6 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #include "inv.h"				//indexes into the inventory
 #include "syn.h"				//synonyms
 #include "match.h"				//string matching types and vars
-
-// for the voice chats
-#ifdef MISSIONPACK
-#include "../../ui/menudef.h"
-#endif
 
 #define TIME_BETWEENCHATTING	25
 
@@ -252,26 +235,22 @@ BotWeaponNameForMeansOfDeath
 
 char *BotWeaponNameForMeansOfDeath(int mod) {
 	switch(mod) {
-		case MOD_SHOTGUN: return "Shotgun";
-		case MOD_GAUNTLET: return "Gauntlet";
-		case MOD_MACHINEGUN: return "Machinegun";
-		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH: return "Grenade Launcher";
-		case MOD_ROCKET:
-		case MOD_ROCKET_SPLASH: return "Rocket Launcher";
-		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH: return "Plasmagun";
-		case MOD_RAILGUN: return "Railgun";
-		case MOD_LIGHTNING: return "Lightning Gun";
-		case MOD_BFG:
-		case MOD_BFG_SPLASH: return "BFG10K";
-#ifdef MISSIONPACK
-		case MOD_NAIL: return "Nailgun";
-		case MOD_CHAINGUN: return "Chaingun";
-		case MOD_PROXIMITY_MINE: return "Proximity Launcher";
-		case MOD_KAMIKAZE: return "Kamikaze";
-		case MOD_JUICED: return "Prox mine";
-#endif
+		case MOD_PUMPER: return "Shotgun";
+		case MOD_PUNCHY: return "Gauntlet";
+		case MOD_NIPPER: return "Machinegun";
+		case MOD_BALLOONY:
+		case MOD_BALLOONY_SPLASH: return "Grenade Launcher";
+		case MOD_BETTY:
+		case MOD_BETTY_SPLASH: return "Rocket Launcher";
+		case MOD_BUBBLEG:
+		case MOD_BUBBLEG_SPLASH: return "Plasmagun";
+		case MOD_SPLASHER: return "Railgun";
+		case MOD_BOASTER: return "Lightning Gun";
+		case MOD_IMPERIUS:
+		case MOD_IMPERIUS_SPLASH: return "BFG10K";
+
+		case MOD_KILLERDUCKS: return "KiLLERDUCKS";
+
 		case MOD_GRAPPLE: return "Grapple";
 		default: return "[unknown weapon]";
 	}
@@ -285,26 +264,19 @@ BotRandomWeaponName
 char *BotRandomWeaponName(void) {
 	int rnd;
 
-#ifdef MISSIONPACK
-	rnd = random() * 11.9;
-#else
 	rnd = random() * 8.9;
-#endif
 	switch(rnd) {
-		case 0: return "Gauntlet";
-		case 1: return "Shotgun";
-		case 2: return "Machinegun";
-		case 3: return "Grenade Launcher";
-		case 4: return "Rocket Launcher";
-		case 5: return "Plasmagun";
-		case 6: return "Railgun";
-		case 7: return "Lightning Gun";
-#ifdef MISSIONPACK
-		case 8: return "Nailgun";
-		case 9: return "Chaingun";
-		case 10: return "Proximity Launcher";
-#endif
-		default: return "BFG10K";
+
+		case 0: return "PUNCHY";
+		case 1: return "PUMPER";
+		case 2: return "NiPPER";
+		case 3: return "BALLOONY";
+		case 4: return "BETTY";
+		case 5: return "BUBBLE.G.";
+		case 6: return "SPLASHER";
+		case 7: return "BOASTER";
+		default: return "IMPERiUS";
+
 	}
 }
 
@@ -352,12 +324,14 @@ int BotValidChatPosition(bot_state_t *bs) {
 	//if the bot is dead all positions are valid
 	if (BotIsDead(bs)) return qtrue;
 	//never start chatting with a powerup
-	if (bs->inventory[INVENTORY_QUAD] ||
-		bs->inventory[INVENTORY_ENVIRONMENTSUIT] ||
-		bs->inventory[INVENTORY_HASTE] ||
-		bs->inventory[INVENTORY_INVISIBILITY] ||
-		bs->inventory[INVENTORY_REGEN] ||
-		bs->inventory[INVENTORY_FLIGHT]) return qfalse;
+
+	if (bs->inventory[INVENTORY_PADPOWER] ||
+		bs->inventory[INVENTORY_CLIMBER] ||
+		bs->inventory[INVENTORY_SPEEDY] ||
+		bs->inventory[INVENTORY_JUMPER] ||
+		bs->inventory[INVENTORY_VISIONLESS] ||
+		bs->inventory[INVENTORY_REVIVAL]) return qfalse;
+
 	//must be on the ground
 	//if (bs->cur_ps.groundEntityNum != ENTITYNUM_NONE) return qfalse;
 	//do not chat if in lava or slime
@@ -460,9 +434,6 @@ int BotChat_StartLevel(bot_state_t *bs) {
 	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
 	//don't chat in teamplay
 	if (TeamPlayIsOn()) {
-#ifdef MISSIONPACK
-	    trap_EA_Command(bs->client, "vtaunt");
-#endif
 	    return qfalse;
 	}
 	// don't chat in tournament mode
@@ -493,13 +464,10 @@ int BotChat_EndLevel(bot_state_t *bs) {
 	if (BotIsObserver(bs)) return qfalse;
 	if (bs->lastchat_time > FloatTime() - TIME_BETWEENCHATTING) return qfalse;
 	// teamplay
-	if (TeamPlayIsOn()) 
+	if (TeamPlayIsOn())
 	{
-#ifdef MISSIONPACK
 		if (BotIsFirstInRankings(bs)) {
-			trap_EA_Command(bs->client, "vtaunt");
 		}
-#endif
 		return qtrue;
 	}
 	// don't chat in tournament mode
@@ -576,9 +544,6 @@ int BotChat_Death(bot_state_t *bs) {
 	{
 		//teamplay
 		if (TeamPlayIsOn()) {
-#ifdef MISSIONPACK
-			trap_EA_Command(bs->client, "vtaunt");
-#endif
 			return qtrue;
 		}
 		//
@@ -599,43 +564,39 @@ int BotChat_Death(bot_state_t *bs) {
 			BotAI_BotInitialChat(bs, "death_suicide", BotRandomOpponentName(bs), NULL);
 		else if (bs->botdeathtype == MOD_TELEFRAG)
 			BotAI_BotInitialChat(bs, "death_telefrag", name, NULL);
-#ifdef MISSIONPACK
-		else if (bs->botdeathtype == MOD_KAMIKAZE && trap_BotNumInitialChats(bs->cs, "death_kamikaze"))
-			BotAI_BotInitialChat(bs, "death_kamikaze", name, NULL);
-#endif
 		else {
-			if ((bs->botdeathtype == MOD_GAUNTLET ||
-				bs->botdeathtype == MOD_RAILGUN ||
-				bs->botdeathtype == MOD_BFG ||
-				bs->botdeathtype == MOD_BFG_SPLASH) && random() < 0.5) {
+			if ((bs->botdeathtype == MOD_PUNCHY ||
+				bs->botdeathtype == MOD_SPLASHER ||
+				bs->botdeathtype == MOD_IMPERIUS ||
+				bs->botdeathtype == MOD_IMPERIUS_SPLASH) && random() < 0.5) {
 
-				if (bs->botdeathtype == MOD_GAUNTLET)
+				if (bs->botdeathtype == MOD_PUNCHY)
 					BotAI_BotInitialChat(bs, "death_gauntlet",
 							name,												// 0
-							BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
+							//BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
 							NULL);
-				else if (bs->botdeathtype == MOD_RAILGUN)
+				else if (bs->botdeathtype == MOD_SPLASHER)
 					BotAI_BotInitialChat(bs, "death_rail",
 							name,												// 0
-							BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
+							//BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
 							NULL);
 				else
 					BotAI_BotInitialChat(bs, "death_bfg",
 							name,												// 0
-							BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
+							//BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
 							NULL);
 			}
 			//choose between insult and praise
 			else if (random() < trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_INSULT, 0, 1)) {
 				BotAI_BotInitialChat(bs, "death_insult",
 							name,												// 0
-							BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
+							//BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
 							NULL);
 			}
 			else {
 				BotAI_BotInitialChat(bs, "death_praise",
 							name,												// 0
-							BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
+							//BotWeaponNameForMeansOfDeath(bs->botdeathtype),		// 1
 							NULL);
 			}
 		}
@@ -680,25 +641,18 @@ int BotChat_Kill(bot_state_t *bs) {
 	{
 		//don't chat in teamplay
 		if (TeamPlayIsOn()) {
-#ifdef MISSIONPACK
-			trap_EA_Command(bs->client, "vtaunt");
-#endif
 			return qfalse;			// don't wait
 		}
 		//
-		if (bs->enemydeathtype == MOD_GAUNTLET) {
+		if (bs->enemydeathtype == MOD_PUNCHY) {
 			BotAI_BotInitialChat(bs, "kill_gauntlet", name, NULL);
 		}
-		else if (bs->enemydeathtype == MOD_RAILGUN) {
+		else if (bs->enemydeathtype == MOD_SPLASHER) {
 			BotAI_BotInitialChat(bs, "kill_rail", name, NULL);
 		}
 		else if (bs->enemydeathtype == MOD_TELEFRAG) {
 			BotAI_BotInitialChat(bs, "kill_telefrag", name, NULL);
 		}
-#ifdef MISSIONPACK
-		else if (bs->botdeathtype == MOD_KAMIKAZE && trap_BotNumInitialChats(bs->cs, "kill_kamikaze"))
-			BotAI_BotInitialChat(bs, "kill_kamikaze", name, NULL);
-#endif
 		//choose between insult and praise
 		else if (random() < trap_Characteristic_BFloat(bs->character, CHARACTERISTIC_CHAT_INSULT, 0, 1)) {
 			BotAI_BotInitialChat(bs, "kill_insult", name, NULL);
@@ -751,7 +705,7 @@ BotChat_HitTalking
 ==================
 */
 int BotChat_HitTalking(bot_state_t *bs) {
-	char name[32], *weap;
+	char name[32];	//, *weap;
 	int lasthurt_client;
 	float rnd;
 
@@ -776,9 +730,9 @@ int BotChat_HitTalking(bot_state_t *bs) {
 	if (!BotValidChatPosition(bs)) return qfalse;
 	//
 	ClientName(g_entities[bs->client].client->lasthurt_client, name, sizeof(name));
-	weap = BotWeaponNameForMeansOfDeath(g_entities[bs->client].client->lasthurt_mod);
+	//weap = BotWeaponNameForMeansOfDeath(g_entities[bs->client].client->lasthurt_mod);
 	//
-	BotAI_BotInitialChat(bs, "hit_talking", name, weap, NULL);
+	BotAI_BotInitialChat(bs, "hit_talking", name, NULL);	// weap
 	bs->lastchat_time = FloatTime();
 	bs->chatto = CHAT_ALL;
 	return qtrue;
@@ -790,7 +744,7 @@ BotChat_HitNoDeath
 ==================
 */
 int BotChat_HitNoDeath(bot_state_t *bs) {
-	char name[32], *weap;
+	char name[32];	//, *weap;
 	float rnd;
 	int lasthurt_client;
 	aas_entityinfo_t entinfo;
@@ -813,17 +767,20 @@ int BotChat_HitNoDeath(bot_state_t *bs) {
 	if (!bot_fastchat.integer) {
 		if (random() > rnd * 0.5) return qfalse;
 	}
+
+	BotEntityInfo(bs->enemy, &entinfo);
+	if (!entinfo.valid) return qfalse;
+	if (EntityIsShooting(&entinfo)) return qfalse;
+
 	if (!BotValidChatPosition(bs)) return qfalse;
 	//
 	if (BotVisibleEnemies(bs)) return qfalse;
 	//
-	BotEntityInfo(bs->enemy, &entinfo);
-	if (EntityIsShooting(&entinfo)) return qfalse;
 	//
 	ClientName(lasthurt_client, name, sizeof(name));
-	weap = BotWeaponNameForMeansOfDeath(g_entities[bs->client].client->lasthurt_mod);
+	//weap = BotWeaponNameForMeansOfDeath(g_entities[bs->client].client->lasthurt_mod);
 	//
-	BotAI_BotInitialChat(bs, "hit_nodeath", name, weap, NULL);
+	BotAI_BotInitialChat(bs, "hit_nodeath", name, NULL);	// weap,
 	bs->lastchat_time = FloatTime();
 	bs->chatto = CHAT_ALL;
 	return qtrue;
@@ -835,7 +792,7 @@ BotChat_HitNoKill
 ==================
 */
 int BotChat_HitNoKill(bot_state_t *bs) {
-	char name[32], *weap;
+	char name[32];	//, *weap;
 	float rnd;
 	aas_entityinfo_t entinfo;
 
@@ -851,17 +808,20 @@ int BotChat_HitNoKill(bot_state_t *bs) {
 	if (!bot_fastchat.integer) {
 		if (random() > rnd * 0.5) return qfalse;
 	}
+
+	BotEntityInfo(bs->enemy, &entinfo);
+	if (!entinfo.valid) return qfalse;
+	if (EntityIsShooting(&entinfo)) return qfalse;
+
 	if (!BotValidChatPosition(bs)) return qfalse;
 	//
 	if (BotVisibleEnemies(bs)) return qfalse;
 	//
-	BotEntityInfo(bs->enemy, &entinfo);
-	if (EntityIsShooting(&entinfo)) return qfalse;
 	//
 	ClientName(bs->enemy, name, sizeof(name));
-	weap = BotWeaponNameForMeansOfDeath(g_entities[bs->enemy].client->lasthurt_mod);
+	//weap = BotWeaponNameForMeansOfDeath(g_entities[bs->enemy].client->lasthurt_mod);
 	//
-	BotAI_BotInitialChat(bs, "hit_nokill", name, weap, NULL);
+	BotAI_BotInitialChat(bs, "hit_nokill", name, NULL);	// weap,
 	bs->lastchat_time = FloatTime();
 	bs->chatto = CHAT_ALL;
 	return qtrue;
@@ -905,9 +865,6 @@ int BotChat_Random(bot_state_t *bs) {
 		EasyClientName(bs->lastkilledplayer, name, sizeof(name));
 	}
 	if (TeamPlayIsOn()) {
-#ifdef MISSIONPACK
-		trap_EA_Command(bs->client, "vtaunt");
-#endif
 		return qfalse;			// don't wait
 	}
 	//
@@ -954,6 +911,7 @@ float BotChatTime(bot_state_t *bs) {
 BotChatTest
 ==================
 */
+/*
 void BotChatTest(bot_state_t *bs) {
 
 	char name[32];
@@ -1207,3 +1165,4 @@ void BotChatTest(bot_state_t *bs) {
 		trap_BotEnterChat(bs->cs, 0, CHAT_ALL);
 	}
 }
+*/
