@@ -160,7 +160,7 @@ static char* netnames[] = {
 	NULL
 };
 
-static char quake3worldMessage[] = "Visit www.quake3world.com - News, Community, Events, Files";
+static char quake3worldMessage[] = "Visit www.worldofpadman.com - News, Community, Events, Files";
 
 const char* punkbuster_items[] = {
 	"Disabled",

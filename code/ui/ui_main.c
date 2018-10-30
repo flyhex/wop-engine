@@ -109,7 +109,7 @@ static char* netnames[] = {
 };
 
 #ifndef MISSIONPACK
-static char quake3worldMessage[] = "Visit www.quake3world.com - News, Community, Events, Files";
+static char quake3worldMessage[] = "Visit www.worldofpadman.com - News, Community, Events, Files";
 #endif
 
 static int gamecodetoui[] = {4,2,3,0,5,1,6};
