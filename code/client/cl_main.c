@@ -2452,7 +2452,9 @@ void CL_InitServerInfo( serverInfo_t *server, netadr_t *address ) {
 	server->game[0] = '\0';
 	server->gameType = 0;
 	server->netType = 0;
+#ifdef USE_PUNKBUSTER
 	server->punkbuster = 0;
+#endif
 	server->g_humanplayers = 0;
 	server->g_needpass = 0;
 }
@@ -3788,7 +3790,9 @@ static void CL_SetServerInfo(serverInfo_t *server, const char *info, int ping) {
 			server->netType = atoi(Info_ValueForKey(info, "nettype"));
 			server->minPing = atoi(Info_ValueForKey(info, "minping"));
 			server->maxPing = atoi(Info_ValueForKey(info, "maxping"));
+#ifdef USE_PUNKBUSTER
 			server->punkbuster = atoi(Info_ValueForKey(info, "punkbuster"));
+#endif
 			server->g_humanplayers = atoi(Info_ValueForKey(info, "g_humanplayers"));
 			server->g_needpass = atoi(Info_ValueForKey(info, "g_needpass"));
 		}

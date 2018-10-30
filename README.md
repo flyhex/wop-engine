@@ -105,6 +105,7 @@ Makefile.local:
   USE_CODEC_VORBIS     - enable Ogg Vorbis support
   USE_CODEC_OPUS       - enable Ogg Opus support
   USE_MUMBLE           - enable Mumble support
+  USE_PUNKBUSTER       - enable PunkBuster support
   USE_VOIP             - enable built-in VoIP support
   USE_FREETYPE         - enable FreeType support for rendering fonts
   USE_INTERNAL_LIBS    - build internal libraries instead of dynamically

@@ -191,6 +191,10 @@ ifndef USE_VOIP
 USE_VOIP=1
 endif
 
+ifndef USE_PUNKBUSTER
+USE_PUNKBUSTER=1
+endif
+
 ifndef USE_FREETYPE
 USE_FREETYPE=0
 endif

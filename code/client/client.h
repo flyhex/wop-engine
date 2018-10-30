@@ -302,7 +302,9 @@ typedef struct {
 	int			maxPing;
 	int			ping;
 	qboolean	visible;
+#ifdef USE_PUNKBUSTER
 	int			punkbuster;
+#endif
 	int			g_humanplayers;
 	int			g_needpass;
 } serverInfo_t;

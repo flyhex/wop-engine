@@ -4373,6 +4373,8 @@ static const char *UI_FeederItemText(float feederID, int index, int column, qhan
 					} else {
 						return Info_ValueForKey(info, "ping");
 					}
+
+#ifdef USE_PUNKBUSTER
 				case SORT_PUNKBUSTER:
 					punkbuster = atoi(Info_ValueForKey(info, "punkbuster"));
 					if ( punkbuster ) {
@@ -4380,6 +4382,8 @@ static const char *UI_FeederItemText(float feederID, int index, int column, qhan
 					} else {
 						return "No";
 					}
+#endif
+
 			}
 		}
 	} else if (feederID == FEEDER_SERVERSTATUS) {
