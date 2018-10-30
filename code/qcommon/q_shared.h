@@ -1,25 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 #ifndef __Q_SHARED_H
 #define __Q_SHARED_H
 
@@ -27,18 +18,18 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // A user mod should never modify this file
 
 #ifdef STANDALONE
-  #define PRODUCT_NAME				"iofoo3"
-  #define BASEGAME					"foobar"
-  #define CLIENT_WINDOW_TITLE		"changeme"
-  #define CLIENT_WINDOW_MIN_TITLE	"changeme2"
-  #define HOMEPATH_NAME_UNIX		".foo"
-  #define HOMEPATH_NAME_WIN			"FooBar"
+  #define PRODUCT_NAME				"wop"
+  #define BASEGAME					"wop"
+  #define CLIENT_WINDOW_TITLE		"WorldOfPadman"
+  #define CLIENT_WINDOW_MIN_TITLE	"WoP"
+  #define HOMEPATH_NAME_UNIX		".WorldOfPadman"
+  #define HOMEPATH_NAME_WIN			"WorldOfPadman"
   #define HOMEPATH_NAME_MACOSX		HOMEPATH_NAME_WIN
-//  #define STEAMPATH_NAME			"Foo Bar"
+//  #define STEAMPATH_NAME			"World of Padman"
 //  #define STEAMPATH_APPID         ""
-  #define GAMENAME_FOR_MASTER		"foobar"	// must NOT contain whitespace
-  #define CINEMATICS_LOGO		"foologo.roq"
-  #define CINEMATICS_INTRO		"intro.roq"
+  #define GAMENAME_FOR_MASTER		"WorldofPadman"	// must NOT contain whitespace
+//  #define CINEMATICS_LOGO		"foologo.roq"
+//  #define CINEMATICS_INTRO		"intro.roq"
 //  #define LEGACY_PROTOCOL	// You probably don't need this for your standalone game
 #else
   #define PRODUCT_NAME				"ioq3"
@@ -62,13 +53,13 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 // When com_gamename is LEGACY_MASTER_GAMENAME, use quake3 master protocol.
 // You shouldn't change this unless you know what you're doing
-#define LEGACY_MASTER_GAMENAME		"Quake3Arena"
+#define LEGACY_MASTER_GAMENAME		"Quake3Arena" // @todo: do we need to change this? ~smiley
 #define LEGACY_HEARTBEAT_FOR_MASTER	"QuakeArena-1"
 
 #define BASETA				"missionpack"
 
 #ifndef PRODUCT_VERSION
-  #define PRODUCT_VERSION "1.36"
+  #define PRODUCT_VERSION "2.0-dev"
 #endif
 
 #ifndef PRODUCT_DATE
@@ -80,7 +71,7 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define MAX_TEAMNAME		32
 #define MAX_MASTER_SERVERS      5	// number of supported master servers
 
-#define DEMOEXT	"dm_"			// standard demo extension
+#define DEMOEXT	"wopdemo_"			// standard demo extension
 
 #ifdef _MSC_VER
 
