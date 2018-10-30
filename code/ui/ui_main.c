@@ -108,9 +108,7 @@ static char* netnames[] = {
 	"UDP6"
 };
 
-#ifndef MISSIONPACK
 static char quake3worldMessage[] = "Visit www.worldofpadman.com - News, Community, Events, Files";
-#endif
 
 static int gamecodetoui[] = {4,2,3,0,5,1,6};
 static int uitogamecode[] = {4,6,2,3,1,5,7};
@@ -1015,9 +1013,9 @@ int UI_SourceForLAN(void) {
 
 
 static const char *handicapValues[] = {"None","95","90","85","80","75","70","65","60","55","50","45","40","35","30","25","20","15","10","5",NULL};
-#ifndef MISSIONPACK
+
 static int numHandicaps = ARRAY_LEN(handicapValues);
-#endif
+
 
 static void UI_DrawHandicap(rectDef_t *rect, float scale, vec4_t color, int textStyle) {
   int i, h;
@@ -1416,12 +1414,11 @@ static void UI_DrawTierGameType(rectDef_t *rect, float scale, vec4_t color, int 
 }
 
 
-#ifndef MISSIONPACK
 static const char *UI_OpponentLeaderName(void) {
   int i = UI_TeamIndexFromName(UI_Cvar_VariableString("ui_opponentName"));
 	return uiInfo.teamList[i].teamMembers[0];
 }
-#endif
+
 
 static const char *UI_AIFromName(const char *name) {
 	int j;
@@ -1433,7 +1430,7 @@ static const char *UI_AIFromName(const char *name) {
 	return "James";
 }
 
-#ifndef MISSIONPACK
+
 static const int UI_AIIndex(const char *name) {
 	int j;
 	for (j = 0; j < uiInfo.characterCount; j++) {
@@ -1443,9 +1440,8 @@ static const int UI_AIIndex(const char *name) {
 	}
 	return 0;
 }
-#endif
 
-#ifndef MISSIONPACK
+
 static const int UI_AIIndexFromName(const char *name) {
 	int j;
 	for (j = 0; j < uiInfo.aliasCount; j++) {
@@ -1455,17 +1451,14 @@ static const int UI_AIIndexFromName(const char *name) {
 	}
 	return 0;
 }
-#endif
 
 
-#ifndef MISSIONPACK
 static const char *UI_OpponentLeaderHead(void) {
 	const char *leader = UI_OpponentLeaderName();
 	return UI_AIFromName(leader);
 }
-#endif
 
-#ifndef MISSIONPACK
+
 static const char *UI_OpponentLeaderModel(void) {
 	int i;
 	const char *head = UI_OpponentLeaderHead();
@@ -1476,7 +1469,6 @@ static const char *UI_OpponentLeaderModel(void) {
 	}
 	return "James";
 }
-#endif
 
 
 static qboolean updateOpponentModel = qtrue;
@@ -4939,11 +4931,11 @@ static void UI_Pause(qboolean b) {
 	}
 }
 
-#ifndef MISSIONPACK
+
 static int UI_OwnerDraw_Width(int ownerDraw) {
   return 0;
 }
-#endif
+
 
 static int UI_PlayCinematic(const char *name, float x, float y, float w, float h) {
   return trap_CIN_PlayCinematic(name, x, y, w, h, (CIN_loop | CIN_silent));
@@ -5945,7 +5937,6 @@ static void UI_StopServerRefresh( void )
 ArenaServers_MaxPing
 =================
 */
-#ifndef MISSIONPACK
 static int ArenaServers_MaxPing( void ) {
 	int		maxPing;
 
@@ -5955,7 +5946,7 @@ static int ArenaServers_MaxPing( void ) {
 	}
 	return maxPing;
 }
-#endif
+
 
 /*
 =================
