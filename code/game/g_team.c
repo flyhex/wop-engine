@@ -210,10 +210,6 @@ void Team_SetFlagStatus( int team, flagStatus_t status ) {
 			st[1] = ctfFlagStatusRemap[teamgame.blueStatus];
 			st[2] = 0;
 		}
-		else {		// GT_1FCTF
-			st[0] = oneFlagStatusRemap[teamgame.flagStatus];
-			st[1] = 0;
-		}
 
 		trap_SetConfigstring( CS_FLAGSTATUS, st );
 	}
