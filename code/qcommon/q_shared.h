@@ -59,7 +59,7 @@
 #define BASETA				"missionpack"
 
 #ifndef PRODUCT_VERSION
-  #define PRODUCT_VERSION "2.0-dev"
+  #define PRODUCT_VERSION "1.7-dev"
 #endif
 
 #ifndef PRODUCT_DATE
@@ -304,7 +304,7 @@ typedef enum {
 #define PROP_SMALL_SIZE_SCALE	0.75
 
 #define BLINK_DIVISOR			200
-#define PULSE_DIVISOR			75
+#define PULSE_DIVISOR			125
 
 #define UI_LEFT			0x00000000	// default
 #define UI_CENTER		0x00000001
@@ -398,6 +398,18 @@ extern	vec4_t		colorWhite;
 extern	vec4_t		colorLtGrey;
 extern	vec4_t		colorMdGrey;
 extern	vec4_t		colorDkGrey;
+
+extern	vec4_t		colorTBlack33;
+extern	vec4_t		colorTBlack66;
+extern	vec4_t		colorDkGreen;
+extern	vec4_t		colorDkBlue;
+extern	vec4_t		colorDkRed;
+extern	vec4_t		colorDkLilac;
+extern	vec4_t		colorDkOrange;
+
+extern vec4_t	spraycolors[];
+//#define NUM_SPRAYCOLORS ( sizeof( spraycolors[] ) / sizeof( spraycolors[0] ) )
+#define NUM_SPRAYCOLORS 6
 
 #define Q_COLOR_ESCAPE	'^'
 #define Q_IsColorString(p)	((p) && *(p) == Q_COLOR_ESCAPE && *((p)+1) && isalnum(*((p)+1))) // ^[0-9a-zA-Z]
@@ -1229,6 +1241,7 @@ typedef struct playerState_s {
 #define BUTTON_FOLLOWME		1024
 
 #define	BUTTON_ANY			2048			// any key whatsoever
+#define BUTTON_DROPCART		4096		// wop: button12
 
 #define	MOVE_RUN			120			// if forwardmove or rightmove are >= MOVE_RUN,
 										// then BUTTON_WALKING should be set
@@ -1253,7 +1266,8 @@ typedef enum {
 	TR_LINEAR,
 	TR_LINEAR_STOP,
 	TR_SINE,					// value = base + sin( time / duration ) * delta
-	TR_GRAVITY
+	TR_GRAVITY,
+	TR_LOW_GRAVITY // wop
 } trType_t;
 
 typedef struct {
@@ -1417,6 +1431,15 @@ typedef enum _flag_status {
 #define CDKEY_LEN 16
 #define CDCHKSUM_LEN 2
 
+/*
+// wop story mode
+typedef enum {
+	WSM_NO=0,
+	WSM_NORMAL,
+	WSM_STARTMAP,
+	WSM_ENDMAP
+} wopStoryMode_e;
+*/
 
 #define LERP( a, b, w ) ( ( a ) * ( 1.0f - ( w ) ) + ( b ) * ( w ) )
 #define LUMA( red, green, blue ) ( 0.2126f * ( red ) + 0.7152f * ( green ) + 0.0722f * ( blue ) )

@@ -1,5 +1,5 @@
 #
-# ioq3 Makefile
+# wop Makefile
 #
 # GNU Make required
 #
@@ -12,25 +12,25 @@ ifeq ($(COMPILE_PLATFORM),sunos)
 endif
 
 ifndef BUILD_STANDALONE
-  BUILD_STANDALONE =
+  BUILD_STANDALONE = 1
 endif
 ifndef BUILD_CLIENT
-  BUILD_CLIENT     =
+  BUILD_CLIENT     = 1
 endif
 ifndef BUILD_SERVER
-  BUILD_SERVER     =
+  BUILD_SERVER     = 1
 endif
 ifndef BUILD_GAME_SO
-  BUILD_GAME_SO    =
+  BUILD_GAME_SO    = 0
 endif
 ifndef BUILD_GAME_QVM
-  BUILD_GAME_QVM   =
+  BUILD_GAME_QVM   = 1
 endif
 ifndef BUILD_BASEGAME
-  BUILD_BASEGAME =
+  BUILD_BASEGAME   = 1
 endif
 ifndef BUILD_RENDERER_OPENGL2
-  BUILD_RENDERER_OPENGL2=
+  BUILD_RENDERER_OPENGL2= 1
 endif
 ifndef BUILD_AUTOUPDATER  # DON'T build unless you mean to!
   BUILD_AUTOUPDATER=0
@@ -105,15 +105,15 @@ VERSION=1.36
 endif
 
 ifndef CLIENTBIN
-CLIENTBIN=ioquake3
+CLIENTBIN=wop
 endif
 
 ifndef SERVERBIN
-SERVERBIN=ioq3ded
+SERVERBIN=wopded
 endif
 
 ifndef BASEGAME
-BASEGAME=baseq3
+BASEGAME=wop
 endif
 
 ifndef BASEGAME_CFLAGS
@@ -121,7 +121,7 @@ BASEGAME_CFLAGS=
 endif
 
 ifndef COPYDIR
-COPYDIR="/usr/local/games/quake3"
+COPYDIR="/usr/local/games/WorldOfPadman"
 endif
 
 ifndef COPYBINDIR
@@ -177,7 +177,7 @@ USE_MUMBLE=1
 endif
 
 ifndef USE_VOIP
-USE_VOIP=1
+USE_VOIP=0
 endif
 
 ifndef USE_PUNKBUSTER
@@ -2390,52 +2390,47 @@ $(B)/$(BASEGAME)/vm/qagame.qvm: $(Q3GVMOBJ) $(GDIR)/g_syscalls.asm $(Q3ASM)
 #############################################################################
 
 Q3UIOBJ_ = \
-  $(B)/$(BASEGAME)/ui/ui_main.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_main.o \
   $(B)/$(BASEGAME)/ui/bg_misc.o \
   $(B)/$(BASEGAME)/ui/bg_lib.o \
-  $(B)/$(BASEGAME)/ui/ui_addbots.o \
-  $(B)/$(BASEGAME)/ui/ui_atoms.o \
-  $(B)/$(BASEGAME)/ui/ui_cdkey.o \
-  $(B)/$(BASEGAME)/ui/ui_cinematics.o \
-  $(B)/$(BASEGAME)/ui/ui_confirm.o \
-  $(B)/$(BASEGAME)/ui/ui_connect.o \
-  $(B)/$(BASEGAME)/ui/ui_controls2.o \
-  $(B)/$(BASEGAME)/ui/ui_credits.o \
-  $(B)/$(BASEGAME)/ui/ui_demo2.o \
-  $(B)/$(BASEGAME)/ui/ui_display.o \
-  $(B)/$(BASEGAME)/ui/ui_gameinfo.o \
-  $(B)/$(BASEGAME)/ui/ui_ingame.o \
-  $(B)/$(BASEGAME)/ui/ui_loadconfig.o \
-  $(B)/$(BASEGAME)/ui/ui_menu.o \
-  $(B)/$(BASEGAME)/ui/ui_mfield.o \
-  $(B)/$(BASEGAME)/ui/ui_mods.o \
-  $(B)/$(BASEGAME)/ui/ui_network.o \
-  $(B)/$(BASEGAME)/ui/ui_options.o \
-  $(B)/$(BASEGAME)/ui/ui_playermodel.o \
-  $(B)/$(BASEGAME)/ui/ui_players.o \
-  $(B)/$(BASEGAME)/ui/ui_playersettings.o \
-  $(B)/$(BASEGAME)/ui/ui_preferences.o \
-  $(B)/$(BASEGAME)/ui/ui_qmenu.o \
-  $(B)/$(BASEGAME)/ui/ui_removebots.o \
-  $(B)/$(BASEGAME)/ui/ui_saveconfig.o \
-  $(B)/$(BASEGAME)/ui/ui_serverinfo.o \
-  $(B)/$(BASEGAME)/ui/ui_servers2.o \
-  $(B)/$(BASEGAME)/ui/ui_setup.o \
-  $(B)/$(BASEGAME)/ui/ui_sound.o \
-  $(B)/$(BASEGAME)/ui/ui_sparena.o \
-  $(B)/$(BASEGAME)/ui/ui_specifyserver.o \
-  $(B)/$(BASEGAME)/ui/ui_splevel.o \
-  $(B)/$(BASEGAME)/ui/ui_sppostgame.o \
-  $(B)/$(BASEGAME)/ui/ui_spskill.o \
-  $(B)/$(BASEGAME)/ui/ui_startserver.o \
-  $(B)/$(BASEGAME)/ui/ui_team.o \
-  $(B)/$(BASEGAME)/ui/ui_teamorders.o \
-  $(B)/$(BASEGAME)/ui/ui_video.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_mfield.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_atoms.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_addbots.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_confirm.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_connect.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_controls.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_credits.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_demos.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_display.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_gameinfo.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_help.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_ingame.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_callvote.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_mainmenu.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_exit.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_mods.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_music.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_network.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_playermodel.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_players.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_playersettings.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_preferences.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_qmenu.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_removebots.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_serverinfo.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_servers.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_setup.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_sound.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_specifyserver.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_startserver.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_team.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_teamorders.o \
+  $(B)/$(BASEGAME)/ui/wop_ui_video.o \
   \
   $(B)/$(BASEGAME)/qcommon/q_math.o \
   $(B)/$(BASEGAME)/qcommon/q_shared.o
 
-Q3UIOBJ = $(Q3UIOBJ_) $(B)/$(MISSIONPACK)/ui/ui_syscalls.o
+Q3UIOBJ = $(Q3UIOBJ_) $(B)/$(BASEGAME)/ui/ui_syscalls.o
 Q3UIVMOBJ = $(Q3UIOBJ_:%.o=%.asm)
 
 $(B)/$(BASEGAME)/ui$(SHLIBNAME): $(Q3UIOBJ)

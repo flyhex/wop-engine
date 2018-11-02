@@ -47,6 +47,26 @@ vec4_t		colorLtGrey	= {0.75, 0.75, 0.75, 1};
 vec4_t		colorMdGrey	= {0.5, 0.5, 0.5, 1};
 vec4_t		colorDkGrey	= {0.25, 0.25, 0.25, 1};
 
+// -> wop additions
+vec4_t		colorTBlack33	= {0, 0, 0, 0.33f};
+vec4_t		colorTBlack66	= {0, 0, 0, 0.66f};
+vec4_t		colorDkGreen	= {0, 0.5f, 0, 1};
+vec4_t		colorDkBlue		= {0, 0, 0.5f, 1};
+vec4_t		colorDkRed		= {0.5f, 0, 0, 1};
+vec4_t		colorDkLilac	= {0.4f, 0, 0.4f, 1};
+vec4_t		colorDkOrange	= {0.75f, 0.3f, 0, 1};
+
+// FIXME: Move into bg
+vec4_t	spraycolors[] = {
+		{ 0.0, 1.0, 0.0, 1.0 },
+		{ 1.0, 0.0, 0.0, 1.0 },
+		{ 1.0, 1.0, 0.0, 1.0 },
+		{ 0.0, 0.0, 1.0, 1.0 },
+		{ 1.0, 1.0, 1.0, 1.0 },
+		{ 0.0, 0.0, 0.0, 1.0 }
+};
+// <- wop additions
+
 vec4_t	g_color_table[8] =
 	{
 	{0.0, 0.0, 0.0, 1.0},
@@ -439,6 +459,15 @@ void AxisCopy( vec3_t in[3], vec3_t out[3] ) {
 	VectorCopy( in[2], out[2] );
 }
 
+// -> wop additions
+//by HERBY ...
+void AxisScale( vec3_t in[3], float s, vec3_t out[3] ) {
+	VectorScale( in[0], s, out[0] );
+	VectorScale( in[1], s, out[1] );
+	VectorScale( in[2], s, out[2] );
+}
+// <- wop additions
+
 void ProjectPointOnPlane( vec3_t dst, const vec3_t p, const vec3_t normal )
 {
 	float d;
@@ -492,6 +521,16 @@ void VectorRotate( vec3_t in, vec3_t matrix[3], vec3_t out )
 	out[1] = DotProduct( in, matrix[1] );
 	out[2] = DotProduct( in, matrix[2] );
 }
+
+// -> wop additions
+//HERBY ... herby used the VectorRotate with a "transponierten Matrix" ;)
+void VectorRotateTMatrix( vec3_t in, vec3_t matrix[3], vec3_t out )
+{
+	out[0] = matrix[0][0]*in[0] + matrix[1][0]*in[1] + matrix[2][0]*in[2];
+	out[1] = matrix[0][1]*in[0] + matrix[1][1]*in[1] + matrix[2][1]*in[2];
+	out[2] = matrix[0][2]*in[0] + matrix[1][2]*in[1] + matrix[2][2]*in[2];
+}
+// <- wop additions
 
 //============================================================================
 
