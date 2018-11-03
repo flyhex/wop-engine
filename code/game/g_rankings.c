@@ -1,24 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
 // g_rankings.c -- reports for global rankings system
 
 #include "g_local.h"
@@ -257,7 +249,7 @@ void G_RankDamage( int self, int attacker, int damage, int means_of_death )
 
 	// the gauntlet only "fires" when it actually hits something
 	if( (attacker != ENTITYNUM_WORLD) && (attacker != self) && 
-		(means_of_death == MOD_GAUNTLET)  && 
+		(means_of_death == MOD_PUNCHY)  &&
 		(g_entities[attacker].client) )
 	{
 		trap_RankReportInt( attacker, -1, QGR_KEY_SHOT_FIRED_GAUNTLET, 1, 1 );
@@ -282,10 +274,10 @@ void G_RankDamage( int self, int attacker, int damage, int means_of_death )
 	// get splash damage
 	switch( means_of_death )
 	{
-	case MOD_GRENADE_SPLASH:
-	case MOD_ROCKET_SPLASH:
-	case MOD_PLASMA_SPLASH:
-	case MOD_BFG_SPLASH:
+	case MOD_BALLOONY_SPLASH:
+	case MOD_BETTY_SPLASH:
+	case MOD_BUBBLEG_SPLASH:
+	case MOD_IMPERIUS_SPLASH:
 		splash = damage;
 		break;
 	default:
@@ -297,46 +289,46 @@ void G_RankDamage( int self, int attacker, int damage, int means_of_death )
 	// hit, damage, and splash taken
 	switch( means_of_death )
 	{
-	case MOD_GAUNTLET:
+	case MOD_PUNCHY:
 		key_hit = QGR_KEY_HIT_TAKEN_GAUNTLET;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_GAUNTLET;
 		break;
-	case MOD_MACHINEGUN:
+	case MOD_NIPPER:
 		key_hit = QGR_KEY_HIT_TAKEN_MACHINEGUN;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_MACHINEGUN;
 		break;
-	case MOD_SHOTGUN:
+	case MOD_PUMPER:
 		key_hit = QGR_KEY_HIT_TAKEN_SHOTGUN;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_SHOTGUN;
 		break;
-	case MOD_GRENADE:
-	case MOD_GRENADE_SPLASH:
+	case MOD_BALLOONY:
+	case MOD_BALLOONY_SPLASH:
 		key_hit = QGR_KEY_HIT_TAKEN_GRENADE;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_GRENADE;
 		key_splash = QGR_KEY_SPLASH_TAKEN_GRENADE;
 		break;
-	case MOD_ROCKET:
-	case MOD_ROCKET_SPLASH:
+	case MOD_BETTY:
+	case MOD_BETTY_SPLASH:
 		key_hit = QGR_KEY_HIT_TAKEN_ROCKET;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_ROCKET;
 		key_splash = QGR_KEY_SPLASH_TAKEN_ROCKET;
 		break;
-	case MOD_PLASMA:
-	case MOD_PLASMA_SPLASH:
+	case MOD_BUBBLEG:
+	case MOD_BUBBLEG_SPLASH:
 		key_hit = QGR_KEY_HIT_TAKEN_PLASMA;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_PLASMA;
 		key_splash = QGR_KEY_SPLASH_TAKEN_PLASMA;
 		break;
-	case MOD_RAILGUN:
+	case MOD_SPLASHER:
 		key_hit = QGR_KEY_HIT_TAKEN_RAILGUN;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_RAILGUN;
 		break;
-	case MOD_LIGHTNING:
+	case MOD_BOASTER:
 		key_hit = QGR_KEY_HIT_TAKEN_LIGHTNING;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_LIGHTNING;
 		break;
-	case MOD_BFG:
-	case MOD_BFG_SPLASH:
+	case MOD_IMPERIUS:
+	case MOD_IMPERIUS_SPLASH:
 		key_hit = QGR_KEY_HIT_TAKEN_BFG;
 		key_damage = QGR_KEY_DAMAGE_TAKEN_BFG;
 		key_splash = QGR_KEY_SPLASH_TAKEN_BFG;
@@ -374,46 +366,46 @@ void G_RankDamage( int self, int attacker, int damage, int means_of_death )
 	{
 		switch( means_of_death )
 		{
-		case MOD_GAUNTLET:
+		case MOD_PUNCHY:
 			key_hit = QGR_KEY_HIT_GIVEN_GAUNTLET;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_GAUNTLET;
 			break;
-		case MOD_MACHINEGUN:
+		case MOD_NIPPER:
 			key_hit = QGR_KEY_HIT_GIVEN_MACHINEGUN;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_MACHINEGUN;
 			break;
-		case MOD_SHOTGUN:
+		case MOD_PUMPER:
 			key_hit = QGR_KEY_HIT_GIVEN_SHOTGUN;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_SHOTGUN;
 			break;
-		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH:
+		case MOD_BALLOONY:
+		case MOD_BALLOONY_SPLASH:
 			key_hit = QGR_KEY_HIT_GIVEN_GRENADE;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_GRENADE;
 			key_splash = QGR_KEY_SPLASH_GIVEN_GRENADE;
 			break;
-		case MOD_ROCKET:
-		case MOD_ROCKET_SPLASH:
+		case MOD_BETTY:
+		case MOD_BETTY_SPLASH:
 			key_hit = QGR_KEY_HIT_GIVEN_ROCKET;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_ROCKET;
 			key_splash = QGR_KEY_SPLASH_GIVEN_ROCKET;
 			break;
-		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH:
+		case MOD_BUBBLEG:
+		case MOD_BUBBLEG_SPLASH:
 			key_hit = QGR_KEY_HIT_GIVEN_PLASMA;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_PLASMA;
 			key_splash = QGR_KEY_SPLASH_GIVEN_PLASMA;
 			break;
-		case MOD_RAILGUN:
+		case MOD_SPLASHER:
 			key_hit = QGR_KEY_HIT_GIVEN_RAILGUN;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_RAILGUN;
 			break;
-		case MOD_LIGHTNING:
+		case MOD_BOASTER:
 			key_hit = QGR_KEY_HIT_GIVEN_LIGHTNING;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_LIGHTNING;
 			break;
-		case MOD_BFG:
-		case MOD_BFG_SPLASH:
+		case MOD_IMPERIUS:
+		case MOD_IMPERIUS_SPLASH:
 			key_hit = QGR_KEY_HIT_GIVEN_BFG;
 			key_damage = QGR_KEY_DAMAGE_GIVEN_BFG;
 			key_splash = QGR_KEY_SPLASH_GIVEN_BFG;
@@ -545,35 +537,35 @@ void G_RankPlayerDie( int self, int attacker, int means_of_death )
 		
 		switch( means_of_death )
 		{
-		case MOD_GAUNTLET:
+		case MOD_PUNCHY:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_GAUNTLET, 1, 1 );
 			break;
-		case MOD_MACHINEGUN:
+		case MOD_NIPPER:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_MACHINEGUN, 1, 1 );
 			break;
-		case MOD_SHOTGUN:
+		case MOD_PUMPER:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_SHOTGUN, 1, 1 );
 			break;
-		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH:
+		case MOD_BALLOONY:
+		case MOD_BALLOONY_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_GRENADE, 1, 1 );
 			break;
-		case MOD_ROCKET:
-		case MOD_ROCKET_SPLASH:
+		case MOD_BETTY:
+		case MOD_BETTY_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_ROCKET, 1, 1 );
 			break;
-		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH:
+		case MOD_BUBBLEG:
+		case MOD_BUBBLEG_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_PLASMA, 1, 1 );
 			break;
-		case MOD_RAILGUN:
+		case MOD_SPLASHER:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_RAILGUN, 1, 1 );
 			break;
-		case MOD_LIGHTNING:
+		case MOD_BOASTER:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_LIGHTNING, 1, 1 );
 			break;
-		case MOD_BFG:
-		case MOD_BFG_SPLASH:
+		case MOD_IMPERIUS:
+		case MOD_IMPERIUS_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_SUICIDE_BFG, 1, 1 );
 			break;
 		case MOD_GRAPPLE:
@@ -593,35 +585,35 @@ void G_RankPlayerDie( int self, int attacker, int means_of_death )
 		
 		switch( means_of_death )
 		{
-		case MOD_GAUNTLET:
+		case MOD_PUNCHY:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_GAUNTLET, 1, 1 );
 			break;
-		case MOD_MACHINEGUN:
+		case MOD_NIPPER:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_MACHINEGUN, 1, 1 );
 			break;
-		case MOD_SHOTGUN:
+		case MOD_PUMPER:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_SHOTGUN, 1, 1 );
 			break;
-		case MOD_GRENADE:
-		case MOD_GRENADE_SPLASH:
+		case MOD_BALLOONY:
+		case MOD_BALLOONY_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_GRENADE, 1, 1 );
 			break;
-		case MOD_ROCKET:
-		case MOD_ROCKET_SPLASH:
+		case MOD_BETTY:
+		case MOD_BETTY_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_ROCKET, 1, 1 );
 			break;
-		case MOD_PLASMA:
-		case MOD_PLASMA_SPLASH:
+		case MOD_BUBBLEG:
+		case MOD_BUBBLEG_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_PLASMA, 1, 1 );
 			break;
-		case MOD_RAILGUN:
+		case MOD_SPLASHER:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_RAILGUN, 1, 1 );
 			break;
-		case MOD_LIGHTNING:
+		case MOD_BOASTER:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_LIGHTNING, 1, 1 );
 			break;
-		case MOD_BFG:
-		case MOD_BFG_SPLASH:
+		case MOD_IMPERIUS:
+		case MOD_IMPERIUS_SPLASH:
 			trap_RankReportInt( p1, p2, QGR_KEY_FRAG_BFG, 1, 1 );
 			break;
 		case MOD_GRAPPLE:

@@ -1,25 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 // g_local.h -- local definitions for game module
 
 #include "../qcommon/q_shared.h"
@@ -31,13 +22,14 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 // the "gameversion" client command will print this plus compile date
 #define	GAMEVERSION	BASEGAME
 
-#define BODY_QUEUE_SIZE		8
+#define BODY_QUEUE_SIZE		64 // (8) noch zu überdenken, ob man wirklich so viele entities dafür frei halten kann ... ohne probleme zu bekommen
 
 #define INFINITE			1000000
 
 #define	FRAMETIME			100					// msec
 #define	CARNAGE_REWARD_TIME	3000
-#define REWARD_SPRITE_TIME	2000
+#define REWARD_SPRITE_TIME	4000
+#define SPRAYREWARD_SPRITE_TIME	6000
 
 #define	INTERMISSION_DELAY_TIME	1000
 #define	SP_INTERMISSION_DELAY_TIME	5000
@@ -52,12 +44,65 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define FL_NO_HUMANS			0x00004000	// spawn point just for bots
 #define FL_FORCE_GESTURE		0x00008000	// force gesture on client
 
+
+// Maybe these should be inline funtions? ///FIXME(#@): yes, they should!
+#define IsSyc()					( ( GT_SPRAYFFA == g_gametype.integer ) || ( GT_SPRAY == g_gametype.integer ) )
+#define InSprayroom( client )	( IsSyc() && ( (client)->ps.stats[STAT_SPRAYROOMSECS] > 0 ) )
+
+//NOTE(#@): tiny difference ... "lps death" is <= 0 ... "lps dead spec" is < 0 ... I introduced this year(s) ago to have a "nice" death before getting to the spectator-mode
+#define LPSDeadSpec( client )		( ( GT_LPS == g_gametype.integer ) && ( (client)->sess.livesleft < 0 ) )
+#define LPSFinalDead( client )		( ( GT_LPS == g_gametype.integer ) && ( (client)->sess.livesleft <= 0 ) )
+
+// Fixed reasons and scores for AddScore and AddTeamScore
+// Also see g_team.h for some teamplay (ctf) specific score boni
+#define SCORE_SUICIDE			-1
+#define SCORE_TEAMKILL			-1
+#define SCORE_KILL				 1
+#define SCORE_SURVIVE			 1
+#define SCORE_SPRAY				 5
+#define SCORE_SPRAY_WRONGWALL	-SCORE_SPRAY
+#define SCORE_BONUS_SPRAYKILLER	10
+#define SCORE_BONUS_SPRAYGOD	25
+#define SCORE_CAPTURE			1
+
+#define SCORE_SUICIDE_S			"suicide"
+#define SCORE_TEAMKILL_S		"teamkill"
+#define SCORE_KILL_S			"kill"
+#define SCORE_SURVIVE_S			"survive"
+#define SCORE_SPRAY_S			"spray"
+#define SCORE_SPRAY_WRONGWALL_S	"spray_wrongwall"
+#define SCORE_TARGET_SCORE_S	"target_score"
+
+#define SCORE_BONUS_FRAG_CARRIER_S			"frag_carrier"
+#define SCORE_BONUS_CARRIER_PROTECT_S		"carrier_protect"
+#define SCORE_BONUS_DEFENSE_S				"defense"
+#define SCORE_BONUS_RECOVERY_S				"recovery"
+#define SCORE_BONUS_CAPTURE_S				"capture"
+#define SCORE_BONUS_CAPTURE_TEAM_S			"capture_team"
+#define SCORE_BONUS_ASSIST_RETURN_S			"assist_return"
+#define SCORE_BONUS_ASSIST_FRAG_CARRIER_S	"assist_frag_carrier"
+#define SCORE_BONUS_FLAG_S					"flag"
+#define SCORE_BONUS_SPRAYKILLER_S			"spraykiller"
+#define SCORE_BONUS_SPRAYGOD_S				"spraygod"
+
+#define BOOMIES_TRIGGERBOX		RANGE_BOOMIE_WIDTH // == RANGE_BOOMIE_HEIGHT
+
+
+#define PLAYERINFO_TEAM		"Players_Team"
+#define PLAYERINFO_BOT		"Players_Bot"
+#define PLAYERINFO_NONE		"(None)"
+
+
 // movers are things like doors, plats, buttons, etc
 typedef enum {
 	MOVER_POS1,
 	MOVER_POS2,
 	MOVER_1TO2,
-	MOVER_2TO1
+	MOVER_2TO1,
+	ROTATOR_POS1,
+	ROTATOR_POS2,
+	ROTATOR_1TO2,
+	ROTATOR_2TO1
 } moverState_t;
 
 #define SP_PODIUM_MODEL		"models/mapobjects/podium/podium4.md3"
@@ -113,11 +158,16 @@ struct gentity_s {
 	gentity_t	*nextTrain;
 	gentity_t	*prevTrain;
 	vec3_t		pos1, pos2;
+	float		distance;
 
 	char		*message;
 
 	int			timestamp;		// body queue sinking, etc
 
+	int			teamMask;
+	int			teamTime[2];
+
+//	float		angle;			// set in editor, -1 = up, -2 = down
 	char		*target;
 	char		*targetname;
 	char		*team;
@@ -167,6 +217,11 @@ struct gentity_s {
 	// timing variables
 	float		wait;
 	float		random;
+
+	// some infos for animation of SP_misc_externalmodel
+	int			animationStart;
+	int			animationEnd;
+	float		animationFPS;
 
 	gitem_t		*item;			// for bonus items
 };
@@ -219,6 +274,9 @@ typedef struct {
 	int			spectatorClient;	// for chasecam and follow mode
 	int			wins, losses;		// tournament stats
 	qboolean	teamLeader;			// true when this client is a team leader
+
+	int			livesleft;// for LPS
+	char		selectedlogo[32];
 } clientSession_t;
 
 //
@@ -258,6 +316,22 @@ struct gclient_s {
 
 	qboolean	noclip;
 
+	qboolean	readyToFight;
+	int			last_slickent_touch;//note last touch time ... to control deactivation
+	int			lastOwnCartMSGtime;
+
+	int			sprayroomleavetime;//when the player have to leave the room
+	int			sprayroomsoundflags;//1 -> TenSecondsTo..., 2 -> CountDown
+	int			last_nonspray_weapon;
+	int			logoasktime;
+
+	int			lastBoasterHitTime;
+	gentity_t*	lastBoasterHitAttacker;
+	int			nextBoasterDoTTick;
+
+	int			balloonTime;
+	gentity_t*	balloonEnt;
+
 	int			lastCmdTime;		// level.time of last usercmd_t, for EF_CONNECTION
 									// we can't just use pers.lastCommand.time, because
 									// of the g_sycronousclients case
@@ -279,6 +353,9 @@ struct gclient_s {
 
 	int			accuracy_shots;		// total number of shots
 	int			accuracy_hits;		// total number of hits
+
+	int			logocounter;		// for spraygod and spraykiller
+	int			lastDeathTime;		// for sorting in lps
 
 	//
 	int			lastkilled_client;	// last client that this client killed
@@ -304,8 +381,16 @@ struct gclient_s {
 	// like health / armor countdowns and regeneration
 	int			timeResidual;
 
+	gentity_t	*persistantPowerup; // supposed to be missionpack only..
 
 	char		*areabits;
+
+	int			lastSentFlying;		// last client that sent the player flying
+	int			lastSentFlyingTime;
+
+	int			dropTime;
+
+	int			powerupsBackpack[MAX_POWERUPS];
 };
 
 
@@ -323,6 +408,17 @@ typedef struct {
 	int			num_entities;		// MAX_CLIENTS <= num_entities <= ENTITYNUM_MAX_NORMAL
 
 	int			warmupTime;			// restart match at this time
+
+	int			lastGhostPadTime;
+
+	gentity_t	*sr_tele;//for bot-code
+	gentity_t	*rspraywall, *bspraywall, *nspraywall;
+	gentity_t	*sr_tl_tele;//sprayroom timelimit tele ;)
+	gentity_t	*sr_teleout;	// outtele
+	int	maxsprayroomtime;
+//HERBY: used for BigBalloon gametype
+	int			numBalloons;
+	char		balloonState[MAX_BALLOONS + 1];
 
 	fileHandle_t	logFile;
 
@@ -393,6 +489,11 @@ typedef struct {
 	gentity_t	*locationHead;			// head of the location list
 	int			bodyQueIndex;			// dead bodies
 	gentity_t	*bodyQue[BODY_QUEUE_SIZE];
+	qboolean	cammode;
+	vec3_t		cam_spawnpos;
+	vec3_t		cam_spawnangles;
+	int			numBambams[TEAM_NUM_TEAMS];
+	int			numBoomies[TEAM_NUM_TEAMS];
 } level_locals_t;
 
 
@@ -415,6 +516,10 @@ void StopFollowing( gentity_t *ent );
 void BroadcastTeamChange( gclient_t *client, int oldTeam );
 void SetTeam( gentity_t *ent, const char *s );
 void Cmd_FollowCycle_f( gentity_t *ent, int dir );
+void Cmd_dropCartridge_f( gentity_t *ent );
+char *ConcatArgs( int start );
+void G_Say( gentity_t *ent, gentity_t *target, int mode, const char *chatText );
+
 
 //
 // g_items.c
@@ -459,6 +564,7 @@ void	G_FreeEntity( gentity_t *e );
 qboolean	G_EntitiesFree( void );
 
 void	G_TouchTriggers (gentity_t *ent);
+//void	G_TouchSolids (gentity_t *ent);
 
 float	*tv (float x, float y, float z);
 char	*vtos( const vec3_t v );
@@ -471,6 +577,33 @@ void G_SetOrigin( gentity_t *ent, vec3_t origin );
 void AddRemap(const char *oldShader, const char *newShader, float timeOffset);
 const char *BuildShaderStateConfig( void );
 
+int DebugLine(vec3_t start, vec3_t end, int color);
+void DebugLineDouble(vec3_t start, vec3_t end, int color);
+void DeleteDebugLines(void);
+
+void G_BackupPowerups( gclient_t *cl );
+void G_RestorePowerups( gclient_t *cl );
+
+// Simply matches EF_AWARD_ flags in bg_public.h
+typedef enum {
+	AWARD_EXCELLENT		= EF_AWARD_EXCELLENT,
+	AWARD_GAUNTLET		= EF_AWARD_GAUNTLET,
+	AWARD_CAP			= EF_AWARD_CAP,
+	AWARD_IMPRESSIVE	= EF_AWARD_IMPRESSIVE,
+	AWARD_DEFEND		= EF_AWARD_DEFEND,
+	AWARD_ASSIST		= EF_AWARD_ASSIST,
+	AWARD_DENIED		= EF_AWARD_DENIED,
+	AWARD_SPRAYGOD		= EF_AWARD_SPRAYGOD,
+	AWARD_SPRAYKILLER	= EF_AWARD_SPRAYKILLER
+} award_t;
+
+void SetAward( gclient_t *client, award_t award );
+
+void RemoveOwnedItems( gentity_t *client );
+
+const char *GametypeName( gametype_t gametype );
+const char *GametypeNameShort( gametype_t gametype );
+
 //
 // g_combat.c
 //
@@ -481,6 +614,13 @@ int G_InvulnerabilityEffect( gentity_t *targ, vec3_t dir, vec3_t point, vec3_t i
 void body_die( gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int meansOfDeath );
 void TossClientItems( gentity_t *self );
 void TossClientCubes( gentity_t *self );
+
+void BerserkerCheck(gentity_t *ent);
+
+void AI_AddBambam(gentity_t* pEnt1, gentity_t* pEnt2);
+void AI_RemoveBambam(gentity_t* pEnt);
+void AI_AddBoomie(gentity_t* pEnt1, gentity_t* pEnt2);
+void AI_RemoveBoomie(gentity_t* pEnt);
 
 // damage flags
 #define DAMAGE_RADIUS				0x00000001	// damage was indirect
@@ -494,11 +634,22 @@ void TossClientCubes( gentity_t *self );
 //
 void G_RunMissile( gentity_t *ent );
 
-gentity_t *fire_plasma (gentity_t *self, vec3_t start, vec3_t aimdir);
+void G_RunExplosion( gentity_t *ent );
+
+gentity_t *fire_boaster (gentity_t *self, vec3_t start, vec3_t aimdir);
+gentity_t *fire_nipper (gentity_t *self, vec3_t start, vec3_t dir);
+gentity_t *fire_splasher (gentity_t *self, vec3_t start, vec3_t aimdir);
+gentity_t *explode_imperius (gentity_t *self);
+
+gentity_t *fire_duck (gentity_t *self, vec3_t start, vec3_t aimdir);
+gentity_t *fire_bambamMissile(gentity_t *self, vec3_t start, vec3_t dir, float velocity);
+
+gentity_t *fire_bubbleg (gentity_t *self, vec3_t start, vec3_t dir);
 gentity_t *fire_grenade (gentity_t *self, vec3_t start, vec3_t aimdir);
 gentity_t *fire_rocket (gentity_t *self, vec3_t start, vec3_t dir);
 gentity_t *fire_bfg (gentity_t *self, vec3_t start, vec3_t dir);
 gentity_t *fire_grapple (gentity_t *self, vec3_t start, vec3_t dir);
+gentity_t *fire_kma ( gentity_t *self, vec3_t start, vec3_t dir );
 
 
 //
@@ -539,14 +690,20 @@ team_t PickTeam( int ignoreClientNum );
 void SetClientViewAngle( gentity_t *ent, vec3_t angle );
 gentity_t *SelectSpawnPoint (vec3_t avoidPoint, vec3_t origin, vec3_t angles, qboolean isbot);
 void CopyToBodyQue( gentity_t *ent );
-void ClientRespawn(gentity_t *ent);
+//void ClientRespawn(gentity_t *ent);
+void respawn (gentity_t *ent); // todo: rename to ClientRespawn
 void BeginIntermission (void);
 void InitBodyQue (void);
 void ClientSpawn( gentity_t *ent );
 void player_die (gentity_t *self, gentity_t *inflictor, gentity_t *attacker, int damage, int mod);
-void AddScore( gentity_t *ent, vec3_t origin, int score );
+void AddScore( gentity_t *ent, vec3_t origin, int score, char *reason );
 void CalculateRanks( void );
 qboolean SpotWouldTelefrag( gentity_t *spot );
+
+gentity_t *SelectSpectatorSpawnPoint( vec3_t origin, vec3_t angles );
+
+qboolean GetASpawnPosition(vec3_t currentPos, vec3_t output);
+
 
 //
 // g_svcmds.c
@@ -554,6 +711,7 @@ qboolean SpotWouldTelefrag( gentity_t *spot );
 qboolean	ConsoleCommand( void );
 void G_ProcessIPBans(void);
 qboolean G_FilterPacket (char *from);
+int	convertGTStringToGTNumber(char* argStr);
 
 //
 // g_weapon.c
@@ -569,6 +727,7 @@ void DeathmatchScoreboardMessage( gentity_t *ent );
 //
 // g_main.c
 //
+int G_GetCvarInt(const char *cvar);
 void MoveClientToIntermission( gentity_t *ent );
 void FindIntermissionPoint( void );
 void SetLeader(int team, int client);
@@ -578,7 +737,7 @@ void AddTournamentQueue(gclient_t *client);
 void QDECL G_LogPrintf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
 void SendScoreboardMessageToAllClients( void );
 void QDECL G_Printf( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
-void QDECL G_Error( const char *fmt, ... ) __attribute__ ((noreturn, format (printf, 1, 2)));
+void QDECL G_Error( const char *fmt, ... ) __attribute__ ((format (printf, 1, 2)));
 
 //
 // g_client.c
@@ -601,7 +760,9 @@ void G_RunClient( gentity_t *ent );
 //
 qboolean OnSameTeam( gentity_t *ent1, gentity_t *ent2 );
 void Team_CheckDroppedItem( gentity_t *dropped );
+int Team_GetFlagStatus(int team);
 qboolean CheckObeliskAttack( gentity_t *obelisk, gentity_t *attacker );
+void QDECL PrintMsg( gentity_t *ent, const char *fmt, ... );
 
 //
 // g_mem.c
@@ -627,8 +788,27 @@ void SpawnModelsOnVictoryPads( void );
 void Svcmd_AbortPodium_f( void );
 
 //
+// g_modifiers.c
+//
+void Instagib_applyWeaponJumpKnockback( vec3_t origin, gentity_t *ent, int mod );
+int Instagib_getSpawnWeapon(void);
+int Instagib_calculateDamage( gentity_t *target, gentity_t *inflictor, gentity_t *attacker, int damage, int dflags, int mod );
+qboolean Instagib_isRelevantDamageEvent( gentity_t *target, gentity_t *inflictor, gentity_t *attacker, int damage, int dflags, int mod );
+qboolean Instagib_canSpawnEntity( gentity_t *ent );
+
+//
+// g_ctlitems.c
+//
+qboolean IsItemSameTeam( gentity_t *item, gentity_t *player );
+qboolean bambam_createByPlayer( gentity_t *pEnt, char* pickupName );
+qboolean boomies_createByPlayer( gentity_t *pEnt, char* pickupName );
+qboolean CantDamageTeamitem( gentity_t *target, gentity_t *attacker );
+
+
+//
 // g_bot.c
 //
+void G_LoadBots( void );
 void G_InitBots( qboolean restart );
 char *G_GetBotInfoByNumber( int num );
 char *G_GetBotInfoByName( const char *name );
@@ -656,6 +836,8 @@ int BotAISetupClient(int client, struct bot_settings_s *settings, qboolean resta
 int BotAIShutdownClient( int client, qboolean restart );
 int BotAIStartFrame( int time );
 void BotTestAAS(vec3_t origin);
+
+void G_InitGameinfo( void );
 
 #include "g_team.h" // teamplay specific stuff
 
@@ -695,6 +877,8 @@ extern	vmCvar_t	g_motd;
 extern	vmCvar_t	g_warmup;
 extern	vmCvar_t	g_doWarmup;
 extern	vmCvar_t	g_blood;
+extern	vmCvar_t	g_warmupReady;
+extern	vmCvar_t	g_curWarmupReady;
 extern	vmCvar_t	g_allowVote;
 extern	vmCvar_t	g_teamAutoJoin;
 extern	vmCvar_t	g_teamForceBalance;
@@ -716,6 +900,25 @@ extern	vmCvar_t	g_enableBreath;
 extern	vmCvar_t	g_singlePlayer;
 extern	vmCvar_t	g_proxMineTimeout;
 extern	vmCvar_t	g_localTeamPref;
+
+extern	vmCvar_t	g_q3Items;
+extern	vmCvar_t	g_sky;
+extern	vmCvar_t	g_skyLensflare;
+extern	vmCvar_t	g_LPS_startlives;
+extern	vmCvar_t	g_LPS_flags;
+extern	vmCvar_t	g_KillerduckHealth;
+extern	vmCvar_t	g_transmitSVboastermissiles;
+extern	vmCvar_t	wop_storyMode; // no weapon, no 2D, no gamelogic, ...
+
+// Game Stats
+extern	vmCvar_t	g_trackGameStats;
+
+// Modifiers
+extern	vmCvar_t	g_modInstagib;
+extern	vmCvar_t	g_modInstagib_WeaponJump;
+
+extern	vmCvar_t	g_logDamage;
+
 
 void	trap_Print( const char *text );
 void	trap_Error( const char *text ) __attribute__((noreturn));
@@ -921,4 +1124,12 @@ void	trap_BotResetWeaponState(int weaponstate);
 int		trap_GeneticParentsAndChildSelection(int numranks, float *ranks, int *parent1, int *parent2, int *child);
 
 void	trap_SnapVector( float *v );
+int		trap_AAS_BestReachableArea(vec3_t origin, vec3_t mins, vec3_t maxs, vec3_t goalorigin);
 
+void BotCamMoveTo(int ent, vec3_t pos);
+void BotCamViewangles(int id, vec3_t angles);
+void BotCamViewTarget(int id, vec3_t pos);
+void BotCamViewEntitiy(int id, int otherId);
+void BotChooseWeap(int id, int weap);
+void BotCamTaunt(int id);
+void BotCamFire(int id);

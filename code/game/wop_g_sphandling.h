@@ -11,31 +11,29 @@
  *           https://github.com/PadWorld-Entertainment/wop-engine            *
  *****************************************************************************/
 
-// make sure this is the same character as we use in chats in g_cmd.c
-#define EC	"\x19"
+#ifndef WOP_SPHANDLING_H
+#define WOP_SPHANDLING_H
 
-//match template contexts
-#define MTCONTEXT_MISC					2
-#define MTCONTEXT_INITIALTEAMCHAT		4
+#include "../qcommon/q_shared.h"
 
-//message types
-#define MSG_NEWLEADER					1		//new leader
-#define MSG_ENTERGAME					2		//enter game message
-#define MSG_GOFORBALLOON				3		//accompany someone
-#define MSG_STARTTEAMLEADERSHIP			4		//someone wants to become the team leader
-#define MSG_WHOISTEAMLAEDER				5		//who is the team leader
-#define MSG_GETITEM						6		//get an item
-#define MSG_MAKELOVE					7		//
-#define MSG_DROPCART					8		//
-#define MSG_WRONGWALL					9		//
-#define	MSG_CATCHME						10		//
+#define WOPSP_STORY_CVAR	"wopSP_story"
+#define WOPSP_SELEMENT_CVAR "wopSP_element"
+#define WOPSP_SAVENAME_CVAR "wopSP_savename"
+#define WOPSP_BOTSKILL		"wopSP_botskill"
 
-//command sub types
-#define ST_ADDRESSED					1
+void wopSP_init(void);
 
-//team message variables
-#define NETNAME							0
-#define PLACE							1
-#define ADDRESSEE						2
-#define ITEM							3
-#define BALLOON							4
+//  should be called by:  ConsoleCommand (g_svcmds.c),   UI_ConsoleCommand (ui_atoms.c)
+qboolean wopSP_cmdCheck(const char* cmd);
+
+//void wopSP_OnIntermission(void);
+//qboolean wopSP_OnExitLevel(void);
+//void wopSP_initGame(void);
+//void wopSP_firstFrame(void);
+//void wopSP_client0Begins(void);
+
+qboolean wopSP_hasForceTeam(void);
+int wopSP_forceTeam(void);
+
+#endif
+

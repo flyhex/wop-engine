@@ -1,28 +1,17 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
-
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
 #include "g_local.h"
-
 
 /*
 ===============
@@ -107,7 +96,7 @@ void P_WorldEffects( gentity_t *ent ) {
 
 	waterlevel = ent->waterlevel;
 
-	envirosuit = ent->client->ps.powerups[PW_BATTLESUIT] > level.time;
+	envirosuit = ent->client->ps.powerups[PW_PADPOWER] > level.time;
 
 	//
 	// check for drowning
@@ -127,6 +116,11 @@ void P_WorldEffects( gentity_t *ent ) {
 				ent->damage += 2;
 				if (ent->damage > 15)
 					ent->damage = 15;
+
+				// play a gurp sound instead of a normal pain sound
+				if (ent->health <= ent->damage) {
+					G_Sound(ent, CHAN_VOICE, G_SoundIndex("*drown"));
+				}
 
 				// don't play a normal pain sound
 				ent->pain_debounce_time = level.time + 200;
@@ -149,7 +143,7 @@ void P_WorldEffects( gentity_t *ent ) {
 			&& ent->pain_debounce_time <= level.time	) {
 
 			if ( envirosuit ) {
-				G_AddEvent( ent, EV_POWERUP_BATTLESUIT, 0 );
+				G_AddEvent( ent, EV_POWERUP_PADPOWER, 0 );
 			} else {
 				if (ent->watertype & CONTENTS_LAVA) {
 					G_Damage (ent, NULL, NULL, NULL, NULL, 
@@ -247,6 +241,41 @@ void	G_TouchTriggers( gentity_t *ent ) {
 	VectorSubtract( ent->client->ps.origin, range, mins );
 	VectorAdd( ent->client->ps.origin, range, maxs );
 
+	// check if we lagged through a tele-trigger (for the tele-tubes of the syc-room)
+	{
+		vec3_t	tmpv3;
+		float	v;
+		trace_t tr;
+
+		tmpv3[0]=ent->client->ps.origin[0]-ent->client->oldOrigin[0];
+		tmpv3[1]=ent->client->ps.origin[1]-ent->client->oldOrigin[1];
+		tmpv3[2]=ent->client->ps.origin[2]-ent->client->oldOrigin[2];
+		v=VectorLengthSquared(tmpv3);
+		// the touchbox checks 80 units ... so we'll need to check the rest ;)
+		if(v>=80.0f*80.0f)
+		{
+			trap_Trace(&tr,ent->client->oldOrigin,ent->r.mins,ent->r.maxs,ent->client->ps.origin,ENTITYNUM_WORLD,(int) 0xFFFFFFFF);
+			// ToDo?: checking other triggers?
+			if(tr.fraction<1.0f && g_entities[tr.entityNum].s.eType==ET_TELEPORT_TRIGGER)
+			{
+				memset( &trace, 0, sizeof(trace) );
+				if ( g_entities[tr.entityNum].touch ) {
+					g_entities[tr.entityNum].touch(&g_entities[tr.entityNum], ent, &trace);
+				}
+				if ( ( ent->r.svFlags & SVF_BOT ) && ( ent->touch ) ) {
+					ent->touch( ent, &g_entities[tr.entityNum], &trace );
+				}
+
+				// vv copy from bellow ... don't know if we realy need it ;P vv
+				if ( ent->client->ps.jumppad_frame != ent->client->ps.pmove_framecount ) {
+					ent->client->ps.jumppad_frame = 0;
+					ent->client->ps.jumppad_ent = 0;
+				}
+				return;
+			}
+		}
+	}
+
 	num = trap_EntitiesInBox( mins, maxs, touch, MAX_GENTITIES );
 
 	// can't use ent->absmin, because that has a one unit pad
@@ -264,7 +293,7 @@ void	G_TouchTriggers( gentity_t *ent ) {
 		}
 
 		// ignore most entities if a spectator
-		if ( ent->client->sess.sessionTeam == TEAM_SPECTATOR ) {
+		if ( ( ent->client->sess.sessionTeam == TEAM_SPECTATOR ) || LPSDeadSpec( ent->client ) ) {
 			if ( hit->s.eType != ET_TELEPORT_TRIGGER &&
 				// this is ugly but adding a new ET_? type will
 				// most likely cause network incompatibilities
@@ -334,6 +363,7 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 		pm.tracemask = MASK_PLAYERSOLID & ~CONTENTS_BODY;	// spectators can fly through bodies
 		pm.trace = trap_Trace;
 		pm.pointcontents = trap_PointContents;
+		pm.gametype=g_gametype.integer;
 
 		// perform a pmove
 		Pmove (&pm);
@@ -347,10 +377,16 @@ void SpectatorThink( gentity_t *ent, usercmd_t *ucmd ) {
 	client->oldbuttons = client->buttons;
 	client->buttons = ucmd->buttons;
 
+	if(level.time-client->lastDeathTime<10000)
+		return;//verhindern das man bei lps zu schnell in einen follow landet
+
 	// attack button cycles through spectators
 	if ( ( client->buttons & BUTTON_ATTACK ) && ! ( client->oldbuttons & BUTTON_ATTACK ) ) {
 		Cmd_FollowCycle_f( ent, 1 );
 	}
+
+	if( ( client->buttons & BUTTON_USE_HOLDABLE ) && ! ( client->oldbuttons & BUTTON_USE_HOLDABLE ) )
+		StopFollowing( ent );
 }
 
 
@@ -403,24 +439,23 @@ void ClientTimerActions( gentity_t *ent, int msec ) {
 	while ( client->timeResidual >= 1000 ) {
 		client->timeResidual -= 1000;
 
-		// regenerate
-		if ( client->ps.powerups[PW_REGEN] ) {
+		if ( client->ps.powerups[PW_REVIVAL] ) {
 			if ( ent->health < client->ps.stats[STAT_MAX_HEALTH]) {
 				ent->health += 15;
 				if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] * 1.1 ) {
 					ent->health = client->ps.stats[STAT_MAX_HEALTH] * 1.1;
 				}
-				G_AddEvent( ent, EV_POWERUP_REGEN, 0 );
+				G_AddEvent( ent, EV_POWERUP_REVIVAL, 0 );
 			} else if ( ent->health < client->ps.stats[STAT_MAX_HEALTH] * 2) {
 				ent->health += 5;
 				if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] * 2 ) {
 					ent->health = client->ps.stats[STAT_MAX_HEALTH] * 2;
 				}
-				G_AddEvent( ent, EV_POWERUP_REGEN, 0 );
+				G_AddEvent( ent, EV_POWERUP_REVIVAL, 0 );
 			}
-
-		} else {
-			// count down health when over max
+		}
+		else
+		{
 			if ( ent->health > client->ps.stats[STAT_MAX_HEALTH] ) {
 				ent->health--;
 			}
@@ -466,7 +501,8 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 	int		i, j;
 	int		event;
 	gclient_t *client;
-	int		damage;
+//	int		damage;
+//	vec3_t	dir;
 	vec3_t	origin, angles;
 //	qboolean	fired;
 	gitem_t *item;
@@ -482,8 +518,10 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 
 		switch ( event ) {
 		case EV_FALL_MEDIUM:
-		case EV_FALL_FAR:
-			if ( ent->s.eType != ET_PLAYER ) {
+		case EV_FALL_FAR:	// no fall dmg in wop at all
+			break;
+
+/*			if ( ent->s.eType != ET_PLAYER ) {
 				break;		// not in the player model
 			}
 			if ( g_dmflags.integer & DF_NO_FALLING ) {
@@ -497,9 +535,13 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 			ent->pain_debounce_time = level.time + 200;	// no normal pain sound
 			G_Damage (ent, NULL, NULL, NULL, NULL, damage, 0, MOD_FALLING);
 			break;
-
+*/
 		case EV_FIRE_WEAPON:
 			FireWeapon( ent );
+			break;
+
+		case EV_IMPERIUS_EXPLODE:
+			explode_imperius( ent );
 			break;
 
 		case EV_USE_ITEM1:		// teleporter
@@ -513,9 +555,6 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 			} else if ( ent->client->ps.powerups[ PW_BLUEFLAG ] ) {
 				item = BG_FindItemForPowerup( PW_BLUEFLAG );
 				j = PW_BLUEFLAG;
-			} else if ( ent->client->ps.powerups[ PW_NEUTRALFLAG ] ) {
-				item = BG_FindItemForPowerup( PW_NEUTRALFLAG );
-				j = PW_NEUTRALFLAG;
 			}
 
 			if ( item ) {
@@ -538,6 +577,72 @@ void ClientEvents( gentity_t *ent, int oldEventSequence ) {
 
 			break;
 
+		case EV_USE_ITEM3:		// HI_FLOATER
+			if(ent->client->ps.velocity[2]<512.0f)//<256
+				ent->client->ps.velocity[2]+=900.0f*( 1.0f/(float)(G_GetCvarInt("sv_fps")) );//noch zu testen
+
+			break;
+
+		case EV_USE_ITEM4:		//HI_KILLERDUCKS
+			{
+				vec3_t forward, right, up , muzzle;
+
+				AngleVectors (ent->client->ps.viewangles, forward, right, up);
+
+				CalcMuzzlePoint ( ent, forward, right, up, muzzle );
+				fire_duck (ent, muzzle, forward);
+			}
+			break;
+
+		// HI_BAMBAM
+		case EV_USE_ITEM5:
+			{
+				gitem_t	*item = BG_FindItemForHoldable( HI_BAMBAM );
+				if( item )
+				{
+					if ( client->ps.stats[STAT_FORBIDDENITEMS] & ( 1 << HI_BAMBAM ) ) {
+						trap_SendServerCommand( ( ent - g_entities ), va( "cp \"%s not allowed here\"", item->pickup_name ) );
+					}
+					else {
+						if ( bambam_createByPlayer( ent, item->pickup_name ) ) {
+							client->ps.stats[STAT_HOLDABLEVAR] = 0;
+							client->ps.stats[STAT_HOLDABLE_ITEM] = 0;
+						}
+					}
+				}
+				else
+				{
+					trap_SendServerCommand( ( ent - g_entities ), va( "cp \"Invalid item used: %d\"", event ) );
+				}
+				break;
+			}
+
+		// HI_BOOMIES
+		case EV_USE_ITEM6:
+			{
+				gitem_t	*item = BG_FindItemForHoldable( HI_BOOMIES );
+				if( item )
+				{
+					if ( client->ps.stats[STAT_FORBIDDENITEMS] & ( 1 << HI_BOOMIES ) ) {
+						trap_SendServerCommand( ( ent - g_entities ), va( "cp \"%s not allowed here\"", item->pickup_name ) );
+					}
+					else {
+						if ( boomies_createByPlayer( ent, item->pickup_name ) ) {
+							client->ps.stats[STAT_HOLDABLEVAR]--;
+							if ( client->ps.stats[STAT_HOLDABLEVAR] <= 0 ) {
+								ent->client->ps.pm_flags |= PMF_USE_ITEM_HELD;
+								ent->client->ps.stats[STAT_HOLDABLEVAR] = 0;
+								ent->client->ps.stats[STAT_HOLDABLE_ITEM] = 0;
+							}
+						}
+					}
+				}
+				else
+				{
+					trap_SendServerCommand( ( ent - g_entities ), va( "cp \"Invalid item used: %d\"", event ) );
+				}
+				break;
+			}
 		default:
 			break;
 		}
@@ -653,12 +758,18 @@ void ClientThink_real( gentity_t *ent ) {
 		return;
 	}
 
+	if ( (client->buttons & BUTTON_DROPCART) && !(client->oldbuttons & BUTTON_DROPCART) ) {
+		Cmd_dropCartridge_f(ent);
+	}
+
 	// spectators don't do much
-	if ( client->sess.sessionTeam == TEAM_SPECTATOR ) {
+	if ( ( client->sess.sessionTeam == TEAM_SPECTATOR ) || LPSDeadSpec( client ) ) {
 		if ( client->sess.spectatorState == SPECTATOR_SCOREBOARD ) {
 			return;
 		}
 		SpectatorThink( ent, ucmd );
+		// with wop, we need that in the touch-trigger code ...
+		VectorCopy( client->ps.origin, client->oldOrigin );
 		return;
 	}
 
@@ -669,14 +780,23 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// clear the rewards if time
 	if ( level.time > client->rewardTime ) {
-		client->ps.eFlags &= ~(EF_AWARD_IMPRESSIVE | EF_AWARD_EXCELLENT | EF_AWARD_GAUNTLET | EF_AWARD_ASSIST | EF_AWARD_DEFEND | EF_AWARD_CAP );
+		client->ps.eFlags &= REMOVE_AWARDFLAGS;
 	}
+
+	// set hurt flag
+	if ( client->ps.stats[STAT_HEALTH] <= 30 )
+		client->ps.eFlags |= EF_HURT;
+	else
+		client->ps.eFlags &= ~EF_HURT;
+
+	// always reset balloontime
+	client->ps.stats[STAT_BALLOONTIME] = 0;
 
 	if ( client->noclip ) {
 		client->ps.pm_type = PM_NOCLIP;
 	} else if ( client->ps.stats[STAT_HEALTH] <= 0 ) {
 		client->ps.pm_type = PM_DEAD;
-	} else {
+	} else if( client->ps.pm_type != PM_FREEZE ) {
 		client->ps.pm_type = PM_NORMAL;
 	}
 
@@ -684,9 +804,18 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// set speed
 	client->ps.speed = g_speed.value;
-	
-	if ( client->ps.powerups[PW_HASTE] ) {
-		client->ps.speed *= 1.3;
+
+	if ( InSprayroom( client ) ) {
+		// no speedmodification in sprayroom
+	}
+	else if ( client->ps.powerups[PW_SPEEDY] )
+		client->ps.speed *= 2.0f;
+	else
+	{
+		if ( client->ps.powerups[PW_BERSERKER] )
+			client->ps.speed *= 1.5f;
+		else if ( client->ps.weapon == WP_PUNCHY )
+			client->ps.speed *= 1.3f;
 	}
 
 	// Let go of the hook if we aren't firing
@@ -702,8 +831,10 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// check for the hit-scan gauntlet, don't let the action
 	// go through as an attack unless it actually hits something
-	if ( client->ps.weapon == WP_GAUNTLET && !( ucmd->buttons & BUTTON_TALK ) &&
-		( ucmd->buttons & BUTTON_ATTACK ) && client->ps.weaponTime <= 0 ) {
+	if ( ( client->ps.weapon == WP_PUNCHY ) &&
+	     !( ucmd->buttons & BUTTON_TALK ) && ( ucmd->buttons & BUTTON_ATTACK ) &&
+	     ( client->ps.weaponTime <= 0 ) &&
+		 !InSprayroom( client ) ) {
 		pm.gauntletHit = CheckGauntletAttack( ent );
 	}
 
@@ -734,8 +865,11 @@ void ClientThink_real( gentity_t *ent ) {
 
 	VectorCopy( client->ps.origin, client->oldOrigin );
 
-	Pmove (&pm);
-	
+
+	pm.gametype = g_gametype.integer;
+
+	Pmove( &pm );
+
 	// save results of pmove
 	if ( ent->client->ps.eventSequence != oldEventSequence ) {
 		ent->eventTime = level.time;
@@ -763,6 +897,10 @@ void ClientThink_real( gentity_t *ent ) {
 
 	// execute client events
 	ClientEvents( ent, oldEventSequence );
+
+	// reset forbidden items after events have been handled
+	// trigger touches below will set flag for next frame and ClientEvents()
+	client->ps.stats[STAT_FORBIDDENITEMS] = 0;
 
 	// link entity now, after any personal teleporters have been used
 	trap_LinkEntity (ent);
@@ -796,16 +934,23 @@ void ClientThink_real( gentity_t *ent ) {
 			// forcerespawn is to prevent users from waiting out powerups
 			if ( g_forcerespawn.integer > 0 && 
 				( level.time - client->respawnTime ) > g_forcerespawn.integer * 1000 ) {
-				ClientRespawn( ent );
+				respawn( ent );
 				return;
 			}
 		
 			// pressing attack or use is the normal respawn method
 			if ( ucmd->buttons & ( BUTTON_ATTACK | BUTTON_USE_HOLDABLE ) ) {
-				ClientRespawn( ent );
+				respawn( ent );
 			}
 		}
 		return;
+	}
+
+	if ( ( pm.waterlevel <= 1 ) && ( pm.ps->groundEntityNum != ENTITYNUM_NONE ) &&
+	     ( ( client->lastSentFlyingTime + 500 ) > level.time ) ) {
+		if ( !( pm.ps->pm_flags & PMF_TIME_KNOCKBACK ) ) {
+			client->lastSentFlying = -1;
+		}
 	}
 
 	// perform once-a-second actions
@@ -867,7 +1012,7 @@ void SpectatorClientEndFrame( gentity_t *ent ) {
 		}
 		if ( clientNum >= 0 ) {
 			cl = &level.clients[ clientNum ];
-			if ( cl->pers.connected == CON_CONNECTED && cl->sess.sessionTeam != TEAM_SPECTATOR ) {
+			if ( ( cl->pers.connected == CON_CONNECTED ) && ( ( cl->sess.sessionTeam != TEAM_SPECTATOR ) && !LPSDeadSpec( cl ) ) ) {
 				flags = (cl->ps.eFlags & ~(EF_VOTED | EF_TEAMVOTED)) | (ent->client->ps.eFlags & (EF_VOTED | EF_TEAMVOTED));
 				ent->client->ps = cl->ps;
 				ent->client->ps.pm_flags |= PMF_FOLLOW;
@@ -904,11 +1049,14 @@ while a slow client may have multiple ClientEndFrame between ClientThink.
 */
 void ClientEndFrame( gentity_t *ent ) {
 	int			i;
+	clientPersistant_t	*pers;
 
-	if ( ent->client->sess.sessionTeam == TEAM_SPECTATOR ) {
+	if ( ( ent->client->sess.sessionTeam == TEAM_SPECTATOR ) || LPSDeadSpec( ent->client ) ) {
 		SpectatorClientEndFrame( ent );
 		return;
 	}
+
+	pers = &ent->client->pers;
 
 	// turn off any expired powerups
 	for ( i = 0 ; i < MAX_POWERUPS ; i++ ) {

@@ -1,25 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 //
 // g_arenas.c
 //
@@ -76,10 +67,11 @@ void UpdateTournamentInfo( void ) {
 		}
 		
 		perfect = ( level.clients[playerClientNum].ps.persistant[PERS_RANK] == 0 && player->client->ps.persistant[PERS_KILLED] == 0 ) ? 1 : 0;
-		Com_sprintf( msg, sizeof(msg), "postgame %i %i %i %i %i %i %i %i", level.numNonSpectatorClients, playerClientNum, accuracy,
+
+		Com_sprintf( msg, sizeof(msg), "postgame %i %i %i %i %i %i %i %i %i %i", level.numNonSpectatorClients, playerClientNum, accuracy,
 			player->client->ps.persistant[PERS_IMPRESSIVE_COUNT], player->client->ps.persistant[PERS_EXCELLENT_COUNT],
 			player->client->ps.persistant[PERS_GAUNTLET_FRAG_COUNT], player->client->ps.persistant[PERS_SCORE],
-			perfect );
+			perfect, (player->client->ps.persistant[PERS_SPRAYAWARDS_COUNT]>>8), player->client->ps.persistant[PERS_SPRAYAWARDS_COUNT] & 0xFF );
 	}
 
 	msglen = strlen( msg );
@@ -124,11 +116,16 @@ static gentity_t *SpawnModelOnVictoryPad( gentity_t *pad, vec3_t offset, gentity
 	body->s.legsAnim = LEGS_IDLE;
 	body->s.torsoAnim = TORSO_STAND;
 	if( body->s.weapon == WP_NONE ) {
-		body->s.weapon = WP_MACHINEGUN;
+		body->s.weapon = WP_NIPPER;
 	}
-	if( body->s.weapon == WP_GAUNTLET) {
+
+	if( body->s.weapon == WP_PUNCHY) {
 		body->s.torsoAnim = TORSO_STAND2;
 	}
+	else if( body->s.weapon == WP_SPRAYPISTOL) {
+		body->s.torsoAnim = TORSO_SPRAYSTAND;
+	}
+
 	body->s.event = 0;
 	body->r.svFlags = ent->r.svFlags;
 	VectorCopy (ent->r.mins, body->r.mins);
@@ -163,8 +160,11 @@ static gentity_t *SpawnModelOnVictoryPad( gentity_t *pad, vec3_t offset, gentity
 static void CelebrateStop( gentity_t *player ) {
 	int		anim;
 
-	if( player->s.weapon == WP_GAUNTLET) {
+	if( player->s.weapon == WP_PUNCHY) {
 		anim = TORSO_STAND2;
+	}
+	else if( player->s.weapon == WP_SPRAYPISTOL) {
+		anim = TORSO_SPRAYSTAND;
 	}
 	else {
 		anim = TORSO_STAND;

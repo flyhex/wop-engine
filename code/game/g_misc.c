@@ -1,26 +1,15 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
-
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
-// g_misc.c
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
 #include "g_local.h"
 
@@ -78,17 +67,25 @@ TELEPORTERS
 
 void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	gentity_t	*tent;
-	qboolean noAngles;
 
-	noAngles = (angles[0] > 999999.0);
 	// use temp events at source and destination to prevent the effect
 	// from getting dropped by a second player event
-	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) {
-		tent = G_TempEntity( player->client->ps.origin, EV_PLAYER_TELEPORT_OUT );
-		tent->s.clientNum = player->s.clientNum;
-
-		tent = G_TempEntity( origin, EV_PLAYER_TELEPORT_IN );
-		tent->s.clientNum = player->s.clientNum;
+	if ( ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) && !LPSDeadSpec( player->client ) ) {
+		if ( g_gametype.integer < GT_TEAM ) {
+			tent = G_TempEntity( player->client->ps.origin, EV_PLAYER_TELEPORT_OUT );
+			VectorCopy(player->client->ps.viewangles,tent->s.angles);
+			tent->s.clientNum = player->s.clientNum;
+			tent = G_TempEntity( origin, EV_PLAYER_TELEPORT_IN );
+			tent->s.clientNum = player->s.clientNum;
+		} else {
+			tent = G_TempEntity( player->client->ps.origin, player->client->sess.sessionTeam == TEAM_RED ?
+				EV_PLAYER_TELEPORT_RED_OUT : EV_PLAYER_TELEPORT_BLUE_OUT );
+			VectorCopy(player->client->ps.viewangles,tent->s.angles);
+			tent->s.clientNum = player->s.clientNum;
+			tent = G_TempEntity( origin, player->client->sess.sessionTeam == TEAM_RED ?
+				EV_PLAYER_TELEPORT_RED_IN : EV_PLAYER_TELEPORT_BLUE_IN );
+			tent->s.clientNum = player->s.clientNum;
+		}
 	}
 
 	// unlink to make sure it can't possibly interfere with G_KillBox
@@ -96,19 +93,21 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 
 	VectorCopy ( origin, player->client->ps.origin );
 	player->client->ps.origin[2] += 1;
-	if (!noAngles) {
+
 	// spit the player out
 	AngleVectors( angles, player->client->ps.velocity, NULL, NULL );
 	VectorScale( player->client->ps.velocity, 400, player->client->ps.velocity );
 	player->client->ps.pm_time = 160;		// hold time
 	player->client->ps.pm_flags |= PMF_TIME_KNOCKBACK;
-	// set angles
-	SetClientViewAngle(player, angles);
-	}
+
 	// toggle the teleport bit so the client knows to not lerp
 	player->client->ps.eFlags ^= EF_TELEPORT_BIT;
+
+	// set angles
+	SetClientViewAngle( player, angles );
+
 	// kill anything at the destination
-	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) {
+	if ( ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) && !LPSDeadSpec( player->client ) ) {
 		G_KillBox (player);
 	}
 
@@ -118,7 +117,7 @@ void TeleportPlayer( gentity_t *player, vec3_t origin, vec3_t angles ) {
 	// use the precise origin for linking
 	VectorCopy( player->client->ps.origin, player->r.currentOrigin );
 
-	if ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) {
+	if ( ( player->client->sess.sessionTeam != TEAM_SPECTATOR ) && !LPSDeadSpec( player->client ) ) {
 		trap_LinkEntity (player);
 	}
 }
@@ -130,6 +129,49 @@ Now that we don't have teleport destination pads, this is just
 an info_notnull
 */
 void SP_misc_teleporter_dest( gentity_t *ent ) {
+}
+
+/*QUAKED misc_sprayroomtl_teleporter (0.7 0 0) (-15 -15 -24) (15 15 32)
+Point teleporters at these.
+Now that we don't have teleport destination pads, this is just
+an info_notnull
+*/
+void SP_misc_sprayroomtl_teleporter( gentity_t *ent ) {
+	level.sr_tl_tele=ent;
+}
+
+//===========================================================
+
+/*QUAKED misc_externalmodel (1 0 0) (-16 -16 -16) (16 16 16)
+"model"		arbitrary .md3 file to display
+*/
+#define ANIMATION_THINKTIME	50
+
+static void Think_AnimationExternalmodel( gentity_t *ent ) {
+
+	if(ent->animationEnd>ent->animationStart) {
+		ent->s.frame = (int)((float)level.time*0.001f*ent->animationFPS)%(ent->animationEnd-ent->animationStart);
+		ent->s.frame += ent->animationStart;
+
+		ent->nextthink = level.time + ANIMATION_THINKTIME;
+	}
+}
+
+void SP_misc_externalmodel( gentity_t *ent )
+{
+	ent->s.modelindex = G_ModelIndex( ent->model );
+//	VectorSet (ent->mins, -16, -16, -16);
+//	VectorSet (ent->maxs, 16, 16, 16);
+	trap_LinkEntity (ent);
+
+	G_SetOrigin( ent, ent->s.origin );
+	VectorCopy( ent->s.angles, ent->s.apos.trBase );
+
+	if(ent->animationEnd>ent->animationStart && ent->animationFPS>0.0f) {
+		ent->think = Think_AnimationExternalmodel;
+
+		ent->nextthink = level.time + ANIMATION_THINKTIME;
+	}
 }
 
 
@@ -271,14 +313,17 @@ void Use_Shooter( gentity_t *ent, gentity_t *other, gentity_t *activator ) {
 	VectorNormalize( dir );
 
 	switch ( ent->s.weapon ) {
-	case WP_GRENADE_LAUNCHER:
+	case WP_BALLOONY:
 		fire_grenade( ent, ent->s.origin, dir );
 		break;
-	case WP_ROCKET_LAUNCHER:
+	case WP_BETTY:
 		fire_rocket( ent, ent->s.origin, dir );
 		break;
-	case WP_PLASMAGUN:
-		fire_plasma( ent, ent->s.origin, dir );
+	case WP_BUBBLEG:
+		fire_bubbleg( ent, ent->s.origin, dir );
+		break;
+	case WP_KILLERDUCKS:
+		fire_duck( ent, ent->s.origin, dir );
 		break;
 	}
 
@@ -317,7 +362,7 @@ Fires at either the target or the current direction.
 "random" the number of degrees of deviance from the taget. (1.0 default)
 */
 void SP_shooter_rocket( gentity_t *ent ) {
-	InitShooter( ent, WP_ROCKET_LAUNCHER );
+	InitShooter( ent, WP_BETTY );
 }
 
 /*QUAKED shooter_plasma (1 0 0) (-16 -16 -16) (16 16 16)
@@ -325,7 +370,12 @@ Fires at either the target or the current direction.
 "random" is the number of degrees of deviance from the taget. (1.0 default)
 */
 void SP_shooter_plasma( gentity_t *ent ) {
-	InitShooter( ent, WP_PLASMAGUN);
+	InitShooter( ent, WP_BUBBLEG);
+}
+
+void SP_shooter_killerduck( gentity_t *ent )
+{
+	InitShooter( ent, WP_KILLERDUCKS );
 }
 
 /*QUAKED shooter_grenade (1 0 0) (-16 -16 -16) (16 16 16)
@@ -333,5 +383,5 @@ Fires at either the target or the current direction.
 "random" is the number of degrees of deviance from the taget. (1.0 default)
 */
 void SP_shooter_grenade( gentity_t *ent ) {
-	InitShooter( ent, WP_GRENADE_LAUNCHER);
+	InitShooter( ent, WP_BALLOONY);
 }
