@@ -1,24 +1,15 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
-
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
 /*****************************************************************************
  * name:		be_ai_weap.c
@@ -138,7 +129,7 @@ int BotValidWeaponNumber(int weaponnum)
 {
 	if (weaponnum <= 0 || weaponnum > weaponconfig->numweapons)
 	{
-		botimport.Print(PRT_ERROR, "weapon number out of range\n");
+		botimport.Print(PRT_ERROR, "weapon number (%d) out of range (%d)\n", weaponnum, weaponconfig->numweapons );
 		return qfalse;
 	} //end if
 	return qtrue;
@@ -407,6 +398,13 @@ int BotChooseBestFightWeapon(int weaponstate, int *inventory)
 	float weight, bestweight;
 	weaponconfig_t *wc;
 	bot_weaponstate_t *ws;
+	// cyr
+	int j=0;
+	qboolean setcs = qfalse;
+	char info[1024]="0\\test\\";
+//	char* cs;
+
+	setcs = LibVarGetValue("showweaponweights");	// cyr
 
 	ws = BotWeaponStateFromHandle(weaponstate);
 	if (!ws) return 0;
@@ -429,7 +427,15 @@ int BotChooseBestFightWeapon(int weaponstate, int *inventory)
 			bestweight = weight;
 			bestweapon = i;
 		} //end if
+		if(setcs && weight){	// cyr.. write to infostring
+			strcat(info, va("%d\\%s: %.1f\\",j++, wc->weaponinfo[i].name, weight) );
+		}
 	} //end for
+	// cyr
+	if(setcs){
+		botimport.SetBotInfoString(info/*va("1\\%s\\2\\%s","hello world","its me")*/ );	// cyr
+	//botimport.Print(PRT_MESSAGE, "sending info string: %s\n\n", info);
+	}
 	return bestweapon;
 } //end of the function BotChooseBestFightWeapon
 //===========================================================================

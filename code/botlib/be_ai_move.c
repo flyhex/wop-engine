@@ -1,24 +1,15 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
-
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
 /*****************************************************************************
  * name:		be_ai_move.c
@@ -1147,15 +1138,13 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 			cmdmove[2] = 400;
 			maxframes = PREDICTIONTIME_JUMP / 0.1;
 			cmdframes = 1;
-			stopevent = SE_HITGROUND|SE_HITGROUNDDAMAGE|
-						SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA;
+			stopevent = SE_HITGROUND|SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA;
 		} //end if
 		else
 		{
 			maxframes = 2;
 			cmdframes = 2;
-			stopevent = SE_HITGROUNDDAMAGE|
-						SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA;
+			stopevent = SE_ENTERWATER|SE_ENTERSLIME|SE_ENTERLAVA;
 		} //end else
 		//AAS_ClearShownDebugLines();
 		//
@@ -1171,12 +1160,11 @@ int BotWalkInDirection(bot_movestate_t *ms, vec3_t dir, float speed, int type)
 			return qfalse;
 		} //end if
 		//don't enter slime or lava and don't fall from too high
-		if (move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA|SE_HITGROUNDDAMAGE))
+		if (move.stopevent & (SE_ENTERSLIME|SE_ENTERLAVA))
 		{
 			//botimport.Print(PRT_MESSAGE, "client %d: would be hurt ", ms->client);
 			//if (move.stopevent & SE_ENTERSLIME) botimport.Print(PRT_MESSAGE, "slime\n");
 			//if (move.stopevent & SE_ENTERLAVA) botimport.Print(PRT_MESSAGE, "lava\n");
-			//if (move.stopevent & SE_HITGROUNDDAMAGE) botimport.Print(PRT_MESSAGE, "hitground\n");
 			return qfalse;
 		} //end if
 		//if ground was hit
@@ -2994,6 +2982,43 @@ bot_moveresult_t BotMoveInGoalArea(bot_movestate_t *ms, bot_goal_t *goal)
 	//
 	return result;
 } //end of the function BotMoveInGoalArea
+
+void BotShowRoute(vec3_t org, bot_goal_t* goal){
+	int startarea, curarea, i;
+	vec3_t curorigin;
+	// hm
+	static int avoidreach[MAX_AVOIDREACH];
+	static float avoidreachtimes[MAX_AVOIDREACH];
+	static int avoidreachtries[MAX_AVOIDREACH];
+	int reachnum, resultFlags;
+	aas_reachability_t reach;
+
+	startarea = AAS_PointAreaNum(org);
+	curarea = startarea;
+	VectorCopy(org, curorigin);
+
+		// move towards goal
+	for ( i = 0; i < 100; i++ ) {
+		if ( curarea == goal->areanum ) {
+			break;
+		}
+		reachnum = BotGetReachabilityToGoal(curorigin, curarea,
+										  0, 0,
+										  avoidreach, avoidreachtimes, avoidreachtries,
+										  goal, TFL_DEFAULT|TFL_FUNCBOB, TFL_DEFAULT|TFL_FUNCBOB,
+										  /*NULL,*/ 0, &resultFlags);
+
+		AAS_ReachabilityFromNum(reachnum, &reach);
+
+		AAS_DrawArrow(curorigin, reach.start, LINECOLOR_BLUE, LINECOLOR_YELLOW);
+		AAS_ShowReachability(&reach);
+
+		VectorCopy(reach.end, curorigin);
+		//lastareanum = curarea;
+		curarea = reach.areanum;
+	}
+}
+
 //===========================================================================
 //
 // Parameter:				-
@@ -3022,6 +3047,10 @@ void BotMoveToGoal(bot_moveresult_t *result, int movestate, bot_goal_t *goal, in
 	//reset the grapple before testing if the bot has a valid goal
 	//because the bot could lose all its goals when stuck to a wall
 	BotResetGrapple(ms);
+
+	if( LibVarGetValue("showbotroutes") )
+		BotShowRoute(ms->origin, goal);
+
 	//
 	if (!goal)
 	{
@@ -3390,7 +3419,7 @@ void BotMoveToGoal(bot_moveresult_t *result, int movestate, bot_goal_t *goal, in
 							//botimport.Print(PRT_MESSAGE, "found jumppad reachability hard!!\n");
 						} //end if
 					} //end for
-					if (lastreachnum) break;
+					if (lastreachnum) break; // @todo: condition is always false - unreachable code ~smiley
 				} //end else
 			} //end if
 		} //end for
@@ -3456,6 +3485,35 @@ void BotMoveToGoal(bot_moveresult_t *result, int movestate, bot_goal_t *goal, in
 	//copy the last origin
 	VectorCopy(ms->origin, ms->lastorigin);
 } //end of the function BotMoveToGoal
+
+// cyr {
+
+void ShowRoute(int client, int goalent, int goalentarea, int report){	// origin of goal
+	vec3_t curorigin;
+	bot_goal_t goal;
+	aas_entityinfo_t entinfo, goalinfo;
+
+	// get goal origin and area
+	AAS_EntityInfo(goalent, &goalinfo);
+	VectorCopy( goalinfo.origin, goal.origin);
+	goal.areanum = goalentarea; //AAS_PointAreaNum(origin); //botlibglobals.goalareanum;
+
+
+	// bot pos
+	AAS_EntityInfo(client, &entinfo);
+	VectorCopy(entinfo.origin, curorigin);
+
+	BotShowRoute(curorigin, &goal);
+
+/*	// draw straight arrow
+	curorigin[2]-=25;
+	AAS_DrawArrow(curorigin, goal.origin, LINECOLOR_BLUE, LINECOLOR_YELLOW);
+	curorigin[2]+=25;*/
+
+	//if(report) botimport.Print(PRT_MESSAGE, "from %d to %d \n", area, goal.areanum);
+}
+// cyr }
+
 //===========================================================================
 //
 // Parameter:				-
