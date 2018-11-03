@@ -1694,6 +1694,16 @@ Q3OBJ = \
   $(B)/client/sys_autoupdater.o \
   $(B)/client/sys_main.o
 
+ifdef USE_CODEC_MP3
+  Q3OBJ += \
+    $(B)/client/snd_codec_mp3.o
+endif
+
+ifdef USE_CIN_THEORA
+  Q3OBJ += \
+    $(B)/client/cl_ogm.o
+endif
+
 ifdef MINGW
   Q3OBJ += \
     $(B)/client/con_passive.o
@@ -2318,6 +2328,13 @@ Q3CGOBJ_ = \
   $(B)/$(BASEGAME)/cgame/cg_snapshot.o \
   $(B)/$(BASEGAME)/cgame/cg_view.o \
   $(B)/$(BASEGAME)/cgame/cg_weapons.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_misc.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_advanced2d.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_cutscene2d.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_lensflare.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_rautelib.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_spraylogo.o \
+  $(B)/$(BASEGAME)/cgame/wop_cg_spriteparticles.o \
   \
   $(B)/$(BASEGAME)/qcommon/q_math.o \
   $(B)/$(BASEGAME)/qcommon/q_shared.o
@@ -2369,6 +2386,12 @@ Q3GOBJ_ = \
   $(B)/$(BASEGAME)/game/g_trigger.o \
   $(B)/$(BASEGAME)/game/g_utils.o \
   $(B)/$(BASEGAME)/game/g_weapon.o \
+  $(B)/$(BASEGAME)/game/wop_g_ctlitems.o \
+  $(B)/$(BASEGAME)/game/wop_g_gameinfo.o \
+  $(B)/$(BASEGAME)/game/wop_g_modifiers.o \
+  $(B)/$(BASEGAME)/game/wop_g_sphandling.o \
+  $(B)/$(BASEGAME)/game/wop_g_spstoryfiles.o \
+  $(B)/$(BASEGAME)/game/wop_g_stations.o \
   \
   $(B)/$(BASEGAME)/qcommon/q_math.o \
   $(B)/$(BASEGAME)/qcommon/q_shared.o

@@ -7,8 +7,8 @@ language: c
 
 env:
   global:
-    # coverity token
-    - secure: "a2pGsG/+LS12sD/vgCF912TKBDDiT8PwRTH50eE94trQoHmD+bubIc4mXR9rSuU/NKNPdn6KZlqrVkVuoIanjYaf+rg28VavGMcBrtVO2cI1yjTUxb5Eq/cT20m3KfZCSFw3iWXfiK1CpDkm9Pdrr2Yz99EGZse3Y6jRGJ6giWM="
+    # coverity token 
+    - secure: ""
   matrix:
     # standard builds
     - CC=gcc
@@ -40,9 +40,9 @@ addons:
       - libfreetype6-dev
   coverity_scan:
     project:
-      name: "ioquake/ioq3"
+      name: "PadWorld-Entertainment/wop-engine"
       description: "Build submitted via Travis CI"
-    notification_email: quake3-commits@icculus.org
+#    notification_email: 
     build_command_prepend: "make clean"
     build_command: "make release"
     branch_pattern: coverity_scan
