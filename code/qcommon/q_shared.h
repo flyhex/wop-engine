@@ -59,7 +59,7 @@
 #define BASETA				"missionpack"
 
 #ifndef PRODUCT_VERSION
-  #define PRODUCT_VERSION "1.7-dev"
+  #define PRODUCT_VERSION "1.7-dev" // @todo
 #endif
 
 #ifndef PRODUCT_DATE
@@ -686,6 +686,7 @@ float	Q_random( int *seed );
 float	Q_crandom( int *seed );
 
 #define random()	((rand () & 0x7fff) / ((float)0x7fff))
+#define randomindex(count) (rand() % (count))
 #define crandom()	(2.0 * (random() - 0.5))
 
 void vectoangles( const vec3_t value1, vec3_t angles);
@@ -884,6 +885,12 @@ void Info_NextPair( const char **s, char *key, char *value );
 // this is only here so the functions in q_shared.c and bg_*.c can link
 void	QDECL Com_Error( int level, const char *error, ... ) __attribute__ ((noreturn, format(printf, 2, 3)));
 void	QDECL Com_Printf( const char *msg, ... ) __attribute__ ((format (printf, 1, 2)));
+
+// -> wop additions
+// value only info strings
+void StringDump_Push(char* s, const char* value);
+void StringDump_GetNext( const char **head, char *value );
+// <- wop additions
 
 
 /*
@@ -1431,7 +1438,7 @@ typedef enum _flag_status {
 #define CDKEY_LEN 16
 #define CDCHKSUM_LEN 2
 
-/*
+
 // wop story mode
 typedef enum {
 	WSM_NO=0,
@@ -1439,7 +1446,10 @@ typedef enum {
 	WSM_STARTMAP,
 	WSM_ENDMAP
 } wopStoryMode_e;
-*/
+
+//HERBY ... herby used the VectorRotate with a "transponierten Matrix" ;)
+void VectorRotateTMatrix( vec3_t in, vec3_t matrix[3], vec3_t out );
+void AxisScale( vec3_t in[3], float s, vec3_t out[3] );
 
 #define LERP( a, b, w ) ( ( a ) * ( 1.0f - ( w ) ) + ( b ) * ( w ) )
 #define LUMA( red, green, blue ) ( 0.2126f * ( red ) + 0.7152f * ( green ) + 0.0722f * ( blue ) )

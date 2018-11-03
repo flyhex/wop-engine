@@ -592,9 +592,9 @@ issues.
 #define	MAX_FILE_HANDLES	64
 
 #ifdef DEDICATED
-#	define Q3CONFIG_CFG "q3config_server.cfg"
+#	define Q3CONFIG_CFG "wopconfig_server.cfg"
 #else
-#	define Q3CONFIG_CFG "q3config.cfg"
+#	define Q3CONFIG_CFG "wopconfig.cfg"
 #endif
 
 qboolean FS_Initialized( void );
@@ -949,6 +949,7 @@ void *Hunk_AllocateTempMemory( int size );
 void Hunk_FreeTempMemory( void *buf );
 int	Hunk_MemoryRemaining( void );
 void Hunk_Log( void);
+void Hunk_Trash( void ); // wop addition
 
 void Com_TouchMemory( void );
 
