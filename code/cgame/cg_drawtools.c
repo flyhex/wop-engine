@@ -1,25 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 // cg_drawtools.c -- helper functions called by cg_draw, cg_scoreboard, cg_info, etc
 #include "cg_local.h"
 
@@ -42,6 +33,14 @@ void CG_AdjustFrom640( float *x, float *y, float *w, float *h ) {
 	*y *= cgs.screenYScale;
 	*w *= cgs.screenXScale;
 	*h *= cgs.screenYScale;
+}
+
+void CG_AdjustFrom1024( float *x, float *y, float *w, float *h )
+{
+	*x *= cgs.scale1024X;
+	*y *= cgs.scale1024Y;
+	*w *= cgs.scale1024X;
+	*h *= cgs.scale1024Y;
 }
 
 /*
@@ -110,6 +109,38 @@ void CG_DrawPic( float x, float y, float width, float height, qhandle_t hShader 
 	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, hShader );
 }
 
+void CG_FillRect1024( float x, float y, float width, float height, const float *color ) {
+	trap_R_SetColor( color );
+
+	CG_AdjustFrom1024( &x, &y, &width, &height );
+	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 0, 0, cgs.media.whiteShader );
+
+	trap_R_SetColor( NULL );
+}
+
+void CG_DrawRect1024( float x, float y, float width, float height, float size, const float *color )
+{
+	float sizeY;
+
+	CG_AdjustFrom1024( &x, &y, &width, &height );
+	sizeY=size*cgs.scale1024Y;
+	size*=cgs.scale1024X;
+
+	trap_R_SetColor( color );
+
+	trap_R_DrawStretchPic( x, y, width, sizeY, 0, 0, 0, 0, cgs.media.whiteShader );
+	trap_R_DrawStretchPic( x, y+height-sizeY, width, sizeY, 0, 0, 0, 0, cgs.media.whiteShader );
+	trap_R_DrawStretchPic( x, y, size, height, 0, 0, 0, 0, cgs.media.whiteShader );
+	trap_R_DrawStretchPic( x+width-size, y, size, height, 0, 0, 0, 0, cgs.media.whiteShader );
+
+	trap_R_SetColor( NULL );
+}
+
+void CG_DrawPic1024( float x, float y, float width, float height, qhandle_t Shader )
+{
+	CG_AdjustFrom1024(&x,&y,&width,&height);
+	trap_R_DrawStretchPic( x, y, width, height, 0, 0, 1, 1, Shader );
+}
 
 
 /*
@@ -128,6 +159,11 @@ void CG_DrawChar( int x, int y, int width, int height, int ch ) {
 	ch &= 255;
 
 	if ( ch == ' ' ) {
+		return;
+	}
+
+	// For some reason, newline maps to a char
+	if ( ch == '\n' ) {
 		return;
 	}
 
@@ -184,7 +220,7 @@ void CG_DrawStringExt( int x, int y, const char *string, const float *setColor,
 				s += 2;
 				continue;
 			}
-			CG_DrawChar( xx + 2, y + 2, charWidth, charHeight, *s );
+			CG_DrawChar( xx + 1, y + 1, charWidth, charHeight, *s );
 			cnt++;
 			xx += charWidth;
 			s++;
@@ -815,3 +851,93 @@ void UI_DrawProportionalString( int x, int y, const char* str, int style, vec4_t
 
 	UI_DrawProportionalString2( x, y, str, color, sizeScale, cgs.media.charsetProp );
 }
+
+
+// thanks  tremulous!
+
+/*
+================
+CG_WorldToScreen
+================
+*/
+qboolean CG_WorldToScreen( vec3_t point, float *x, float *y )
+{
+	vec3_t  trans;
+	float   xc, yc;
+	float   px, py;
+	float   z;
+
+	px = tan( cg.refdef.fov_x * M_PI / 360.0 );
+	py = tan( cg.refdef.fov_y * M_PI / 360.0 );
+
+	VectorSubtract( point, cg.refdef.vieworg, trans );
+
+	xc = 640.0f / 2.0f;
+	yc = 480.0f / 2.0f;
+
+	z = DotProduct( trans, cg.refdef.viewaxis[ 0 ] );
+	if( z <= 0.001f )
+		return qfalse;
+
+	if( x )
+		*x = xc - DotProduct( trans, cg.refdef.viewaxis[ 1 ] ) * xc / ( z * px );
+
+	if( y )
+		*y = yc - DotProduct( trans, cg.refdef.viewaxis[ 2 ] ) * yc / ( z * py );
+
+	return qtrue;
+}
+
+/*
+================
+CG_WorldToScreenWrap
+================
+*/
+qboolean CG_WorldToScreenWrap( vec3_t point, float *x, float *y )
+{
+	vec3_t trans;
+	float px, py, dotForward, dotRight, dotUp, distance, propX, propY;
+
+	px = tan( cg.refdef.fov_x * M_PI / 360.0 );
+	py = tan( cg.refdef.fov_y * M_PI / 360.0 );
+
+	VectorSubtract( point, cg.refdef.vieworg, trans );
+
+	dotForward = DotProduct( trans, cg.refdef.viewaxis[ 0 ] );
+	dotRight = DotProduct( trans, cg.refdef.viewaxis[ 1 ] );
+	dotUp = DotProduct( trans, cg.refdef.viewaxis[ 2 ] );
+
+	distance = abs( dotForward );
+	propX = dotRight / ( distance * px );
+	propY = dotUp / ( distance * py );
+
+	// The distance along the forward axis does not make sense once the point
+	// moves off-screen so we need to use either the side or the up axis instead
+	if( propX < -1.f || propX > 1.f )
+	{
+		distance = abs( dotRight ) / px;
+		propY = dotUp / ( distance * py );
+	}
+	if( propY < -1.f || propY > 1.f )
+	{
+		distance = abs( dotUp ) / py;
+		propX = dotRight / ( distance * px );
+	}
+
+	if( x )
+		*x = 320 - propX * 320;
+	if( y )
+		*y = 240 - propY * 240;
+
+	// Snap to the edge of the screen when the point is behind us
+	if( dotForward < 0.f && *x > 0 && *x < 640 && *y > 0 && *y < 480 )
+	{
+		if( abs( *x - 320 ) > abs( *y - 240 ) )
+			*x = *x <= 320 ? 0.f : 640;
+		else
+			*y = *y <= 240 ? 0.f : 480;
+	}
+
+	return qtrue;
+}
+

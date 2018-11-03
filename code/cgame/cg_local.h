@@ -1,29 +1,21 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 #include "../qcommon/q_shared.h"
 #include "../renderercommon/tr_types.h"
 #include "../game/bg_public.h"
 #include "cg_public.h"
+#include "../client/keycodes.h"	// wop logo choose menu
 
 
 // The entire cgame module is unloaded and reloaded on each level change,
@@ -79,12 +71,27 @@ Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 #define TEAM_OVERLAY_MAXNAME_WIDTH	12
 #define TEAM_OVERLAY_MAXLOCATION_WIDTH	16
 
-#define	DEFAULT_MODEL			"sarge"
-#define	DEFAULT_TEAM_MODEL		"sarge"
-#define	DEFAULT_TEAM_HEAD		"sarge"
+#define	DEFAULT_MODEL			"padman"
+#define DEFAULT_HEADMODEL		"padman"
+#define	DEFAULT_TEAM_MODEL		"padgirl"
+#define	DEFAULT_TEAM_HEADMODEL	"padgirl"
+#define DEFAULT_SKIN			"default"
+#define GLOW_SKIN				"glow"
 
-#define DEFAULT_REDTEAM_NAME		"Stroggs"
-#define DEFAULT_BLUETEAM_NAME		"Pagans"
+#define DEFAULT_REDTEAM_NAME		"RedPads"
+#define DEFAULT_BLUETEAM_NAME		"BlueNoses"
+
+// -> wop additions
+enum {
+	FORCEMODEL_ENEMY	= 1,
+	FORCEMODEL_TEAM		= 2
+};
+
+#define TRAIL_FADETIME	800 //HERBY
+#define HELP_MAX_BUFFERLEN    256
+#define MAX_CHATMESSAGES		4
+// <- wop additions
+
 
 typedef enum {
 	FOOTSTEP_NORMAL,
@@ -94,7 +101,14 @@ typedef enum {
 	FOOTSTEP_ENERGY,
 	FOOTSTEP_METAL,
 	FOOTSTEP_SPLASH,
-
+	// -> wop additions
+	FOOTSTEP_CARPET,
+	FOOTSTEP_LATTICE,
+	FOOTSTEP_SAND,
+	FOOTSTEP_SOFT,
+	FOOTSTEP_WOOD,
+	FOOTSTEP_SNOW,
+	// <- wop additions
 	FOOTSTEP_TOTAL
 } footstep_t;
 
@@ -142,6 +156,9 @@ typedef struct {
 	int				lightningFiring;
 
 	int				railFireTime;
+	// railgun trail spawning
+	vec3_t			railgunImpact;
+	qboolean		railgunFlash;
 
 	// machinegun spinning
 	float			barrelAngle;
@@ -150,43 +167,6 @@ typedef struct {
 } playerEntity_t;
 
 //=================================================
-
-
-
-// centity_t have a direct corespondence with gentity_t in the game, but
-// only the entityState_t is directly communicated to the cgame
-typedef struct centity_s {
-	entityState_t	currentState;	// from cg.frame
-	entityState_t	nextState;		// from cg.nextFrame, if available
-	qboolean		interpolate;	// true if next is valid to interpolate to
-	qboolean		currentValid;	// true if cg.frame holds this entity
-
-	int				muzzleFlashTime;	// move to playerEntity?
-	int				previousEvent;
-	int				teleportFlag;
-
-	int				trailTime;		// so missile trails can handle dropped initial packets
-	int				dustTrailTime;
-	int				miscTime;
-
-	int				snapShotTime;	// last time this entity was found in a snapshot
-
-	playerEntity_t	pe;
-
-	int				errorTime;		// decay the error from this time
-	vec3_t			errorOrigin;
-	vec3_t			errorAngles;
-	
-	qboolean		extrapolated;	// false if origin / angles is an interpolation
-	vec3_t			rawOrigin;
-	vec3_t			rawAngles;
-
-	vec3_t			beamEnd;
-
-	// exact interpolated position of entity on this frame
-	vec3_t			lerpOrigin;
-	vec3_t			lerpAngles;
-} centity_t;
 
 
 //======================================================================
@@ -202,6 +182,9 @@ typedef struct markPoly_s {
 	float		color[4];
 	poly_t		poly;
 	polyVert_t	verts[MAX_VERTS_ON_POLY];
+
+	vec3_t		origin;
+	float		radius;
 } markPoly_t;
 
 
@@ -215,13 +198,31 @@ typedef enum {
 	LE_FADE_RGB,
 	LE_SCALE_FADE,
 	LE_SCOREPLUM,
+
+	// -> wop additions
+	LE_SPRAYTRAIL,
+	LE_TRAIL,
+	LE_TRAIL_TRACED_RGB,
+	LE_WATERBEAM,
+	LE_PUMPERTRAIL,
+	LE_IMPERIUSBOOM,
+	LE_IMPERIUSRINGS,
+	LE_TELEFFECT,
+	LE_BOOMIESEXPLOSION,
+	// <- wop additions
 } leType_t;
 
 typedef enum {
 	LEF_PUFF_DONT_SCALE  = 0x0001,			// do not scale size over time
 	LEF_TUMBLE			 = 0x0002,			// tumble over time, used for ejecting shells
 	LEF_SOUND1			 = 0x0004,			// sound 1 for kamikaze
-	LEF_SOUND2			 = 0x0008			// sound 2 for kamikaze
+	LEF_SOUND2			 = 0x0008,			// sound 2 for kamikaze
+
+	// -> wop additions
+	LEF_AXIS_ALIGNED	 = 0x0010,
+	LEF_COLLISIONS		 = 0x0020,
+	LEF_GRAVITY			 = 0x0040
+	// <- wop additions
 } leFlag_t;
 
 typedef enum {
@@ -238,6 +239,10 @@ typedef enum {
 
 typedef struct localEntity_s {
 	struct localEntity_s	*prev, *next;
+
+	struct localEntity_s	*older, *newer;
+	int						ownerNum;
+
 	leType_t		leType;
 	int				leFlags;
 
@@ -262,11 +267,58 @@ typedef struct localEntity_s {
 	leMarkType_t		leMarkType;		// mark to leave on fragment impact
 	leBounceSoundType_t	leBounceSoundType;
 
-	refEntity_t		refEntity;		
+	refEntity_t		refEntity;
 } localEntity_t;
 
 //======================================================================
 
+//=================================================
+
+// centity_t have a direct corespondence with gentity_t in the game, but
+// only the entityState_t is directly communicated to the cgame
+typedef struct centity_s {
+	entityState_t	currentState;	// from cg.frame
+	entityState_t	nextState;		// from cg.nextFrame, if available
+	qboolean		interpolate;	// true if next is valid to interpolate to
+	qboolean		currentValid;	// true if cg.frame holds this entity
+
+	int				muzzleFlashTime;	// move to playerEntity?
+	int				previousEvent;
+	int				teleportFlag;
+
+	int				lastweaponframe;
+	vec3_t			speedyOrigin;
+	int				nextSpeedytime;
+	int				revivalEffectTime;
+	localEntity_t	*trailLE;//HERBY
+
+	int				trailTime;		// so missile trails can handle dropped initial packets
+	int				dustTrailTime;
+	int				miscTime;
+
+	int				snapShotTime;	// last time this entity was found in a snapshot
+
+	playerEntity_t	pe;
+
+	int				errorTime;		// decay the error from this time
+	vec3_t			errorOrigin;
+	vec3_t			errorAngles;
+
+	qboolean		extrapolated;	// false if origin / angles is an interpolation
+	vec3_t			rawOrigin;
+	vec3_t			rawAngles;
+
+	vec3_t			beamEnd;
+
+	// exact interpolated position of entity on this frame
+	vec3_t			lerpOrigin;
+	vec3_t			lerpAngles;
+} centity_t;
+
+//======================================================================
+
+// for trail drawing
+extern refEntity_t	trailEnt;
 
 typedef struct {
 	int				client;
@@ -284,6 +336,11 @@ typedef struct {
 	int				captures;
 	qboolean	perfect;
 	int				team;
+	// -> wop additions
+	int				spraygod;
+	int				spraykiller;
+	int				livesleft;
+	// <- wop additions
 } score_t;
 
 // each client has an associated clientInfo_t
@@ -360,6 +417,21 @@ typedef struct {
 	animation_t		animations[MAX_TOTALANIMATIONS];
 
 	sfxHandle_t		sounds[MAX_CUSTOM_SOUNDS];
+
+	// -> wop additions
+	char			spraylogo[MAX_SPRAYLOGO_NAME];
+	vec3_t			realmuzzle;//for boaster-trail
+	vec3_t			curPos;//for LPS
+	int				lastPosSaveTime;
+	int				lastTeleInTime;
+	int				lastWaterClearTime;
+	int				numCartridges;
+
+	float			headScale;
+
+	qboolean		glowModel;
+	byte			glowColor[4];
+	// <- wop additions
 } clientInfo_t;
 
 
@@ -616,6 +688,59 @@ typedef struct {
 	char			testModelName[MAX_QPATH];
 	qboolean		testGun;
 
+	// -> wop additions
+	qboolean	logoselected;
+	int			ignorekeys;
+
+	int			first2dtime;
+	char		wopSky[128];
+	vec3_t		wopSky_Angles;
+	vec3_t		wopSky_TimeFactors;
+
+	char		skylensflare[128];
+	vec3_t		skylensflare_dir;
+
+	// History of player chat and icons
+	// Used (instead of code in cl_console) when con_notifytime <= 0
+	char			chattext[MAX_CHATMESSAGES][MAX_SAY_TEXT];
+	qhandle_t		chaticons[MAX_CHATMESSAGES];
+	int			chatmsgtime[MAX_CHATMESSAGES];
+	int			lastchatmsg;
+
+	float		speedyeffect;
+	int			sprayyourcolortime;
+
+	//imperius
+	int			imp_lastwarningsound;
+	int			imp_startloading;
+
+	vec3_t		autoAnglesPadPowerups;
+	vec3_t		autoAxisPadPowerups[3];
+
+	float		zoomfactor;
+	qboolean	zoomedkeydown;
+	int			zoomSoundStat;
+
+	float		loadingprogress;
+
+	//	int			numFFAplayers;
+	qboolean	playedIntermissionMsg;
+
+	int			scoreTeamCount[TEAM_NUM_TEAMS];
+
+	// skull trails
+	skulltrail_t	skulltrails[MAX_CLIENTS];
+
+	// message printing
+	int			messagePrintTime;
+	char		messagePrint[128];
+
+	int				lastVoiceTime[MAX_CLIENTS];
+	// cammod
+	vec3_t			CamPos;
+	vec3_t			CamAngles;
+	qboolean		Cam;
+	// <- wop additions
 } cg_t;
 
 
@@ -825,8 +950,8 @@ typedef struct {
 	sfxHandle_t captureAwardSound;
 	sfxHandle_t redScoredSound;
 	sfxHandle_t blueScoredSound;
-	sfxHandle_t redLeadsSound;
-	sfxHandle_t blueLeadsSound;
+//	sfxHandle_t redLeadsSound;
+//	sfxHandle_t blueLeadsSound;
 	sfxHandle_t teamsTiedSound;
 
 	sfxHandle_t	captureYourTeamSound;
@@ -862,6 +987,237 @@ typedef struct {
 	sfxHandle_t	wstbimpdSound;
 	sfxHandle_t	wstbactvSound;
 
+	// -> wop additions
+	qhandle_t	revivalParticleShader;
+	qhandle_t	BloodScreenShader;
+	qhandle_t	BerserkerScreenShader;
+	qhandle_t	WetScreenShader;
+
+	qhandle_t	redKamikazeShader;
+	qhandle_t	blueKamikazeShader;
+
+	qhandle_t	lpsIcon;
+	qhandle_t	lpsIconLead;
+
+	qhandle_t	bbBoxIcon;
+	qhandle_t	healthstationIcon;
+	qhandle_t	sprayroomIcon;
+
+	qhandle_t	neutralSpraypistolskin;
+	qhandle_t	neutralSpraypistolicon;
+
+	qhandle_t	blueSpraypistolskin;
+	qhandle_t	blueSpraypistolicon;
+
+	qhandle_t	defaultspraylogo;
+
+	int			blueCartridgeEntNum, redCartridgeEntNum, neutralCartridgeEntNum;
+
+	qhandle_t	spraypuff;
+	qhandle_t	spraymark;
+	qhandle_t	slmenu_arrowr;
+	qhandle_t	slmenu_arrowl;
+	qhandle_t	cgwopmenu_cursor;
+	qhandle_t	chooselogo_bg;
+
+	//hud
+	qhandle_t	hud_bl[10];
+	qhandle_t	hud_bc[10];
+	qhandle_t	hud_br[10];
+	//:HERBY:ea
+	qhandle_t	hud_bk_balloon_red;
+	qhandle_t	hud_bk_balloon_blue;
+	qhandle_t	hud_balloon;
+	qhandle_t	hud_balloon_bar;
+	//:HERBY:ee
+
+	qhandle_t	hud_CTL_bg_red;
+	qhandle_t	hud_CTL_bg_blue;
+
+	qhandle_t	hud_teammarker;
+	qhandle_t	hud_shieldbar;
+	qhandle_t	hud_energybar;
+	qhandle_t	hud_shieldbar2;
+	qhandle_t	hud_energybar2;
+	qhandle_t	hud_shieldglass;
+	qhandle_t	hud_energyglass;
+	qhandle_t	hud_dotfull;
+	qhandle_t	hud_dotempty;
+
+	// zoom
+	qhandle_t	zoomhud;		// splasher
+	qhandle_t	zoomruler;
+	qhandle_t	zoomcompass;
+	sfxHandle_t	zoomsound[9];
+	qhandle_t	zoomhud_kma;	// kma
+	qhandle_t	zoomKMAaura;
+	qhandle_t	zoomKMAbluescreen;
+
+	qhandle_t	SchaumShader;
+	qhandle_t	StationRingShader;
+	qhandle_t	PadPowerShader;
+	qhandle_t	PunchyPadPowerSkin;
+	qhandle_t	BerserkerPunchy;
+	qhandle_t	BerserkerAura;
+	qhandle_t	deadfadeSkin;
+	sfxHandle_t	station_start;
+	sfxHandle_t	station_loop;
+	sfxHandle_t	station_end;
+
+	sfxHandle_t	station_empty;
+	sfxHandle_t	speedyTaunt;
+	//	sfxHandle_t	speedyLoop;
+	sfxHandle_t	ghostPadSpawn;
+	sfxHandle_t	ghostPadSpook;
+
+	sfxHandle_t	pickupSound;//für waffen
+	sfxHandle_t	HIpickupSound;
+	sfxHandle_t	ARpickupSound;
+	//sta
+	qhandle_t	HealthStation_Base;
+	qhandle_t	HealthStation_Cross;
+	qhandle_t	HealthStation_Ring;
+	qhandle_t	StationLoadingRings;
+	//ste
+	qhandle_t	GhostPadModel;
+
+	//HERBY vv
+	qhandle_t	star;
+	qhandle_t	fireBallShader;
+	qhandle_t	fireTrailShader;
+	qhandle_t	waterTrailShader;
+	qhandle_t	waterBallShader;
+	qhandle_t	waterBeamShader;
+	qhandle_t	splasherTrailShader;
+	qhandle_t	bubbleGumShader;
+	qhandle_t	nipperBallShader;
+	qhandle_t	nipperWaveShader;
+	qhandle_t	pumperTrailShader;
+	qhandle_t	pumperFlashModel;
+	qhandle_t	imperiusCoreShader;
+	qhandle_t	imperiusRingShader;
+	qhandle_t	imperiusBeamModel;
+
+	qhandle_t	bigDropModel;
+	qhandle_t	smallDropModel;
+
+	qhandle_t	waterMarkShader;
+	qhandle_t	gumMarkShader;
+
+	qhandle_t	boasterExplosionShader;
+	qhandle_t	waterExplosionShader;
+	qhandle_t	fireDropModel;
+	qhandle_t	imperiusSphereModel;
+	qhandle_t	imperiusRingsModel;
+	//HERBY ^^
+	qhandle_t	duckExplosionShader;
+	sfxHandle_t duckExplosionSound;
+	//:HERBY:ea
+	qhandle_t	duckWheelModel;
+	qhandle_t	duckHeadModel;
+	//:HERBY:ee
+
+	// BAMBAM
+	qhandle_t	bambamMissileRedShader;
+	qhandle_t	bambamMissileBlueShader;
+
+	qhandle_t	bambamImpactDrops;
+	qhandle_t	bambamImpactDropsRedShader;
+	qhandle_t	bambamImpactDropsBlueShader;
+
+	qhandle_t	bambamExplosionLeg;
+	qhandle_t	bambamExplosionTorso;
+
+	sfxHandle_t	bambamExplosionSound;
+	sfxHandle_t	boomiesExplosionSound;
+
+	sfxHandle_t bambamMissileImpact;
+
+	qhandle_t	boomiesSphereModel;
+	qhandle_t	boomiesCoreShader;
+
+	qhandle_t	bambamHealthIcon;
+	qhandle_t	bambamHealthIconBG;
+
+
+	// KMA
+	qhandle_t	kmaTrailShader;
+	qhandle_t	kmaBallShader;
+	qhandle_t	smallKmaDropModel;
+	qhandle_t	kmaMarkShader;
+
+	qhandle_t	teleportEffectBlueShader;
+	qhandle_t	teleportEffectRedShader;
+	qhandle_t	teleportEffectGreenShader;
+
+	qhandle_t	teleEffectFPBlueShader;
+	qhandle_t	teleEffectFPRedShader;
+	qhandle_t	teleEffectFPGreenShader;
+	qhandle_t	scoreboardBG;
+	qhandle_t	scoreboardlivesleft;
+	qhandle_t	scoreboardscore_lives;
+
+	qhandle_t	voiceIcon;
+
+	qhandle_t	medalSpraygod;
+	qhandle_t	medalSpraykiller;
+	qhandle_t	medalPadStar;
+
+	sfxHandle_t	berserkerPunchyLoop;
+
+	sfxHandle_t sfx_imperiusexp;
+
+	sfxHandle_t imperiuswarning;
+	sfxHandle_t imperiusloading[13];
+	sfxHandle_t	pumperexpSound;
+	sfxHandle_t BalloonyExplosion;
+	sfxHandle_t	BettyExplosion;
+	//:HERBY:ea
+	sfxHandle_t ballonAufblasSound;
+	sfxHandle_t ballonPlatztSound;
+	//:HERBY:ee
+
+	sfxHandle_t DropCartridgeSound;
+	sfxHandle_t	jumperSound;
+
+	sfxHandle_t CountDown_CountDown[10];
+	sfxHandle_t CountDown_FiveMinutesToPlay;
+	sfxHandle_t CountDown_GameOver;
+	sfxHandle_t CountDown_OneMinuteToPlay;
+	sfxHandle_t CountDown_TenSecondsToLeave;
+
+	sfxHandle_t Announcer_Welcome[3];
+	sfxHandle_t Announcer_SRfrag[2];
+	sfxHandle_t	Announcer_SprayYourColor;
+
+	//:HERBY:ea
+	sfxHandle_t Announcer_RedBalloon;
+	sfxHandle_t Announcer_BlueBalloon;
+	sfxHandle_t Announcer_BigBalloonRed;
+	sfxHandle_t Announcer_BigBalloonBlue;
+	sfxHandle_t Announcer_BalloonDestroyed;
+	//:HERBY:ee
+
+	sfxHandle_t	oneLogoLeft;
+	sfxHandle_t	twoLogosLeft;
+	sfxHandle_t	threeLogosLeft;
+
+	sfxHandle_t	wrongLogo[4];
+	sfxHandle_t	loseFFASound;
+	sfxHandle_t	winLPSSounds[2];
+	sfxHandle_t	YouLooseSound;//for lps round-loose
+	sfxHandle_t	spraygodSound;
+	sfxHandle_t	spraykillerSound;
+	sfxHandle_t	padstarSound;
+	sfxHandle_t weaponHoverSound;
+	sfxHandle_t redLeadsSound[3];
+	sfxHandle_t blueLeadsSound[3];
+
+	sfxHandle_t	stolenlollySound;
+	qhandle_t cursor;
+	qhandle_t selectCursor;
+	qhandle_t sizeCursor;
+	// <- wop additions
 } cgMedia_t;
 
 
@@ -952,6 +1308,20 @@ typedef struct {
 	// media
 	cgMedia_t		media;
 
+	// -> wop additions
+	float			scale1024X;
+	float			scale1024Y;
+
+	char			shortmapname[MAX_QPATH];
+	char			servername[32];
+	int				lpsflags;
+	int				lpsStartLives;
+
+	//:HERBY:ea
+	char			balloonState[MAX_BALLOONS+1];
+	//:HERBY:ee
+	int	lastusedkey;
+	// <- wop additions
 } cgs_t;
 
 //==============================================================================
@@ -1051,6 +1421,51 @@ extern	vmCvar_t		cg_oldRocket;
 extern	vmCvar_t		cg_oldPlasma;
 extern	vmCvar_t		cg_trueLightning;
 
+// -> wop additions
+extern	vmCvar_t		cg_chatBeep;
+extern	vmCvar_t		cg_noVoiceChats;
+extern	vmCvar_t		cg_noVoiceText;
+extern  vmCvar_t		cg_smallFont;
+extern  vmCvar_t		cg_bigFont;
+extern	vmCvar_t		cg_noTaunt;
+extern	vmCvar_t		cg_correctedWeaponPos;
+extern	vmCvar_t		cg_drawRealTime;
+extern	vmCvar_t		cg_printDir;
+extern	vmCvar_t		cg_wopFFAhud;
+extern	vmCvar_t		cg_drawups;
+extern	vmCvar_t		cg_drawMessages;
+extern	vmCvar_t		cg_drawServerInfos;
+extern	vmCvar_t		cg_drawTimeLeft;
+extern	vmCvar_t		cg_thirdPersonAutoSwitch;
+extern	vmCvar_t		cg_bigScoreType;
+extern	vmCvar_t		cg_LPSwallhackSize;
+extern	vmCvar_t		cg_LPSwallhackAlpha;
+
+extern	vmCvar_t		cg_cineHideHud;
+extern	vmCvar_t		cg_cineDrawLetterBox;
+extern	vmCvar_t		wop_storyMode;
+
+extern vmCvar_t			cg_glowModel;
+extern vmCvar_t			cg_glowModelTeam;
+
+extern vmCvar_t			cg_warmupReady;
+extern vmCvar_t			cg_curWarmupReady;
+
+extern vmCvar_t			cg_sky;
+extern vmCvar_t			cg_skyLensflare;
+
+extern vmCvar_t			cg_timestamps;
+
+extern vmCvar_t			cg_drawLensflare;
+extern vmCvar_t			cg_drawVoiceNames;
+
+extern vmCvar_t			cg_drawBBox;
+
+extern vmCvar_t			cg_ambient;
+
+extern vmCvar_t			cg_icons;
+// <- wop additions
+
 //
 // cg_main.c
 //
@@ -1074,6 +1489,12 @@ void CG_RankRunFrame( void );
 void CG_SetScoreSelection(void *menu);
 score_t *CG_GetSelectedScore( void );
 void CG_BuildSpectatorString( void );
+
+int CG_GetCvarInt(const char *cvar);
+float CG_GetCvarFloat(const char *cvar);
+void CG_ForceModelChange( void );
+
+#define IsSyc() ( ( cgs.gametype == GT_SPRAY ) || ( cgs.gametype == GT_SPRAYFFA ) )
 
 
 //
@@ -1122,6 +1543,14 @@ void CG_DrawRect( float x, float y, float width, float height, float size, const
 void CG_DrawSides(float x, float y, float w, float h, float size);
 void CG_DrawTopBottom(float x, float y, float w, float h, float size);
 
+void CG_AdjustFrom1024( float *x, float *y, float *w, float *h );
+void CG_FillRect1024( float x, float y, float width, float height, const float *color );
+void CG_DrawRect1024( float x, float y, float width, float height, float size, const float *color );
+void CG_DrawPic1024( float x, float y, float width, float height, qhandle_t Shader );
+int UI_ProportionalStringWidth( const char* str ); //für die Splasher-Ammo
+qboolean CG_WorldToScreen( vec3_t point, float *x, float *y );
+qboolean CG_WorldToScreenWrap( vec3_t point, float *x, float *y );
+
 
 //
 // cg_draw.c, cg_newDraw.c
@@ -1133,6 +1562,7 @@ extern  char systemChat[256];
 extern  char teamChat1[256];
 extern  char teamChat2[256];
 
+void CG_MessagePrint( const char *str );
 void CG_AddLagometerFrameInfo( void );
 void CG_AddLagometerSnapshotInfo( snapshot_t *snap );
 void CG_CenterPrint( const char *str, int y, int charWidth );
@@ -1155,7 +1585,7 @@ void CG_InitTeamChat( void );
 void CG_GetTeamColor(vec4_t *color);
 const char *CG_GetGameStatusText( void );
 const char *CG_GetKillerText( void );
-void CG_Draw3DModel(float x, float y, float w, float h, qhandle_t model, qhandle_t skin, vec3_t origin, vec3_t angles);
+void CG_Draw3DModel(float x, float y, float w, float h, qhandle_t model, qhandle_t skin, vec3_t origin, vec3_t angles, float scale, byte rgba[4]);
 void CG_Text_PaintChar(float x, float y, float width, float height, float scale, float s, float t, float s2, float t2, qhandle_t hShader);
 void CG_CheckOrderPending( void );
 const char *CG_GameTypeString( void );
@@ -1207,6 +1637,8 @@ void CG_PositionEntityOnTag( refEntity_t *entity, const refEntity_t *parent,
 void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *parent, 
 							qhandle_t parentModel, char *tagName );
 
+void CG_BamBam_Explosion(vec3_t origin);
+void CG_Boomies_Explosion(vec3_t origin);
 
 
 //
@@ -1215,15 +1647,20 @@ void CG_PositionRotatedEntityOnTag( refEntity_t *entity, const refEntity_t *pare
 void CG_NextWeapon_f( void );
 void CG_PrevWeapon_f( void );
 void CG_Weapon_f( void );
+void CG_WeaponSRWC( int weapNum );
+
 
 void CG_RegisterWeapon( int weaponNum );
 void CG_RegisterItemVisuals( int itemNum );
 
 void CG_FireWeapon( centity_t *cent );
-void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, impactSound_t soundType );
-void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int entityNum );
+void CG_MissileHitWall( int weapon, int clientNum, vec3_t origin, vec3_t dir, int colorCode, impactSound_t soundType );//HERBY
+void CG_MissileHitPlayer( int weapon, vec3_t origin, vec3_t dir, int colorCode, int entityNum );
 void CG_ShotgunFire( entityState_t *es );
 void CG_Bullet( vec3_t origin, int sourceEntityNum, vec3_t normal, qboolean flesh, int fleshEntityNum );
+
+void CG_SprayTrail(centity_t *cent, vec3_t start);
+void CG_GetWaterMuzzle( localEntity_t *le, centity_t *cent, vec3_t fw );//HERBY
 
 void CG_RailTrail( clientInfo_t *ci, vec3_t start, vec3_t end );
 void CG_GrappleTrail( centity_t *ent, const weaponInfo_t *wi );
@@ -1264,8 +1701,12 @@ localEntity_t *CG_SmokePuff( const vec3_t p,
 				   int fadeInTime,
 				   int leFlags,
 				   qhandle_t hShader );
+void CG_GenerateParticles( qhandle_t model, qhandle_t shader, vec3_t pos, float randomPos, vec3_t speed, float randomDir,
+						  float randomSpeed, int numParticles, int owner, int time, int life, int randomLife, int size,
+						  int randomSize, int addSize, int randomAddSize, int flags, int renderfx );
 void CG_BubbleTrail( vec3_t start, vec3_t end, float spacing );
-void CG_SpawnEffect( vec3_t org );
+void CG_SpawnEffect( vec3_t org, int team );
+void CG_TeleOutEffect(vec3_t org, int team, centity_t *cent);
 
 void CG_ScorePlum( int client, vec3_t org, int score );
 
@@ -1290,6 +1731,7 @@ void CG_LoadingString( const char *s );
 void CG_LoadingItem( int itemNum );
 void CG_LoadingClient( int clientNum );
 void CG_DrawInformation( void );
+void CG_ChangeLoadingProgress( float f );
 
 //
 // cg_scoreboard.c
@@ -1317,6 +1759,52 @@ void CG_ShaderStateChanged(void);
 void CG_Respawn( void );
 void CG_TransitionPlayerState( playerState_t *ps, playerState_t *ops );
 void CG_CheckChangedPredictableEvents( playerState_t *ps );
+
+//
+// cg_rautelib.c
+//
+qboolean Calculate_2DOf3D(vec3_t point,refdef_t *refdef,float *x,float *y);
+qboolean Calculate_2DOfDIR(vec3_t vec,refdef_t *refdef,float *x,float *y);
+
+
+//
+// cg_spraylogo.c
+//
+void Init_SprayLogoSys( void );
+void AddLogosToScene( void );
+void Add_LogoToDrawList( const vec3_t origin, vec3_t dir, qhandle_t shader, float radius, clientInfo_t *ci );
+qhandle_t FindLogoForSpraying( const clientInfo_t *ci );
+void ActiveChooseLogoMenu(void);
+void DumpPolyInfo( void );
+
+//
+// cg_lensflare.c
+//
+void Init_LensFlareSys(void);
+void AddLFToDrawList(const char *lfname,vec3_t origin,vec3_t dir);
+void AddLFsToScreen(void);
+
+//
+// cg_spriteparticles.c
+//
+void Init_SpriteParticles(void);
+void LaunchSpeedyPuffTrail(vec3_t origin);
+void LaunchFloaterPuff(vec3_t origin);
+void LaunchRevivalParticle( vec3_t origin, const int lifetime );
+void Main_SpriteParticles(void);
+
+//
+// wop_advanced2d.c
+//
+#include "wop_cg_advanced2d.h"
+
+
+//
+// cg_cutscene2d.c
+//
+qboolean CG_Cutscene2d_CheckCmd(const char	*cmd);
+void CG_Cutscene2d_UpdateTrans(void);
+void CG_Cutscene2d_Draw(void);
 
 
 //===============================================
@@ -1535,3 +2023,21 @@ extern qboolean		initparticles;
 int CG_NewParticleArea ( int num );
 
 
+int trap_RealTime(qtime_t *qtime);
+
+
+//
+//	cg_rautelib.c
+qboolean Calculate_2DOf3D(vec3_t point,refdef_t *refdef,float *x,float *y);
+qboolean Calculate_2DOfDIR(vec3_t vec,refdef_t *refdef,float *x,float *y);
+
+//
+
+// cg_misc.c
+void CG_LimitCvars( void );
+char* CG_Timestamp( char *timestamp, unsigned int size );
+void CG_QueryCvar( void );
+void CG_AddBoundingBoxEntity( const centity_t *cent );
+void CG_AddBoundingBox( const centity_t *cent );
+
+qboolean	CG_CalcMuzzlePoint( int entityNum, vec3_t muzzle );

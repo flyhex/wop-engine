@@ -1,25 +1,16 @@
-/*
-===========================================================================
-Copyright (C) 1999-2005 Id Software, Inc.
+/*****************************************************************************
+ *        This file is part of the World of Padman (WoP) source code.        *
+ *                                                                           *
+ *      WoP is based on the ioquake3 fork of the Quake III Arena source.     *
+ *                 Copyright (C) 1999-2005 Id Software, Inc.                 *
+ *                                                                           *
+ *                         Notable contributions by:                         *
+ *                                                                           *
+ *          #@ (Raute), cyrri, Herby, PaulR, brain, Thilo, smiley            *
+ *                                                                           *
+ *           https://github.com/PadWorld-Entertainment/wop-engine            *
+ *****************************************************************************/
 
-This file is part of Quake III Arena source code.
-
-Quake III Arena source code is free software; you can redistribute it
-and/or modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of the License,
-or (at your option) any later version.
-
-Quake III Arena source code is distributed in the hope that it will be
-useful, but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with Quake III Arena source code; if not, write to the Free Software
-Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
-===========================================================================
-*/
-//
 // cg_consolecmds.c -- text commands typed in at the local console, or
 // executed by a key binding
 
@@ -138,6 +129,38 @@ static void CG_TellAttacker_f( void ) {
 	trap_SendClientCommand( command );
 }
 
+// -> wop additions
+static void CG_VoiceTellTarget_f(void){
+	int  clientNum;
+	char command[128];
+	char message[128];
+
+	clientNum = CG_CrosshairPlayer();
+	if(clientNum == -1){
+		return;
+	}
+
+	trap_Args(message, 128);
+	Com_sprintf(command, 128, "vtell %i %s", clientNum, message);
+	trap_SendClientCommand(command);
+}
+
+static void CG_VoiceTellAttacker_f(void){
+	int  clientNum;
+	char command[128];
+	char message[128];
+
+	clientNum = CG_LastAttacker();
+	if(clientNum == -1){
+		return;
+	}
+
+	trap_Args(message, 128);
+	Com_sprintf(command, 128, "vtell %i %s", clientNum, message);
+	trap_SendClientCommand(command);
+}
+// <- wop additions
+
 /*
 ==================
 CG_StartOrbit_f
@@ -175,6 +198,90 @@ static void CG_Camera_f( void ) {
 }
 */
 
+// -> wop additions
+static void CG_ReChooseLogo_f(void){
+	cg.logoselected = 2;
+	cg.ignorekeys   = cg.time + 1000;
+}
+
+static const char *gameNames[] = {
+		GAMETYPE_NAME(GT_FFA),
+		GAMETYPE_NAME(GT_TOURNAMENT),
+		GAMETYPE_NAME(GT_SINGLE_PLAYER),
+		GAMETYPE_NAME(GT_SPRAYFFA),
+		GAMETYPE_NAME(GT_LPS),
+		GAMETYPE_NAME(GT_TEAM),
+		GAMETYPE_NAME(GT_CTF),
+		GAMETYPE_NAME(GT_SPRAY),
+		GAMETYPE_NAME(GT_BALLOON),
+		NULL
+};
+
+
+static void CG_HelpCmd_f(void){
+	char buffer[HELP_MAX_BUFFERLEN];
+
+	if(trap_Argc() > 1){
+		trap_Args(buffer, HELP_MAX_BUFFERLEN);
+		if(!Q_stricmp(buffer, "g_gametype")){
+			int i;
+
+			Com_Printf("GT# -> gametype:\n");
+			for(i = 0; gameNames[i] != NULL; i++){
+				Com_Printf("%3i -> %s\n", i, gameNames[i]);
+			}
+		}
+	}
+	else{
+		Com_Printf("available help:\n");
+		Com_Printf(" g_gametype\n");
+	}
+}
+
+static void CG_DropCartridge_f(void){
+	//	trap_SendClientCommand("dropCartridge"); // also goes over spamm filter
+	trap_SendConsoleCommand("+button12;-button12\n"); // BUTTON_DROPCART
+}
+
+static void CG_Cam(void){
+	// SP only
+	//if( cgs.gametype != GT_SINGLE_PLAYER )
+	//	return;
+
+	// toggle cam mode
+	cg.Cam = cg.Cam ? 0 : 1;
+	VectorCopy(cg.refdef.vieworg, cg.CamPos);
+	VectorCopy(cg.refdefViewAngles, cg.CamAngles);
+}
+
+void Cmd_SetFreecamPos_f(void){
+	vec3_t origin, angles;
+	char   buffer[MAX_TOKEN_CHARS];
+	int    i;
+
+	if(trap_Argc() < 3){
+		CG_Printf("usage: setviewpos x y z pitch yaw roll\n");
+		return;
+	}
+
+	VectorClear(angles);
+
+	for(i = 0; i < 3; i++){
+		trap_Argv(i + 1, buffer, sizeof(buffer));
+		origin[i] = atof(buffer);
+	}
+
+	trap_Argv(5, buffer, sizeof(buffer));
+	angles[YAW] = atof(buffer);
+	trap_Argv(4, buffer, sizeof(buffer));
+	angles[PITCH] = atof(buffer);
+	trap_Argv(6, buffer, sizeof(buffer));
+	angles[ROLL] = atof(buffer);
+
+	VectorCopy(origin, cg.CamPos);
+	VectorCopy(angles, cg.CamAngles);
+}
+// <- wop additions
 
 typedef struct {
 	char	*cmd;
@@ -203,7 +310,18 @@ static consoleCommand_t	commands[] = {
 	{ "tell_attacker", CG_TellAttacker_f },
 	{ "startOrbit", CG_StartOrbit_f },
 	//{ "camera", CG_Camera_f },
-	{ "loaddeferred", CG_LoadDeferredPlayers }	
+	{ "loaddeferred", CG_LoadDeferredPlayers },
+	// -> wop additions
+	{ "vtell_target", CG_VoiceTellTarget_f },
+	{ "vtell_attacker", CG_VoiceTellAttacker_f },
+	{"help", CG_HelpCmd_f },
+	{"rechooselogo", CG_ReChooseLogo_f },
+	{"dropCartridge",CG_DropCartridge_f},
+	{"dropTeamItem",CG_DropCartridge_f},
+	{"freecamsetpos", Cmd_SetFreecamPos_f},
+	{"freecam", CG_Cam},
+	{"spraydump", DumpPolyInfo}
+	// <- wop additions
 };
 
 
@@ -226,6 +344,10 @@ qboolean CG_ConsoleCommand( void ) {
 			commands[i].function();
 			return qtrue;
 		}
+	}
+
+	if(CG_Cutscene2d_CheckCmd(cmd)){
+		return qtrue;
 	}
 
 	return qfalse;
@@ -274,4 +396,20 @@ void CG_InitConsoleCommands( void ) {
 	trap_AddCommand ("stats");
 	trap_AddCommand ("teamtask");
 	trap_AddCommand ("loaddefered");	// spelled wrong, but not changing for demo
+	// -> wop additions
+	trap_AddCommand ("vsay");
+	trap_AddCommand ("vsay_team");
+	trap_AddCommand ("vtell");
+	trap_AddCommand ("vtaunt");
+	trap_AddCommand ("vosay");
+	trap_AddCommand ("vosay_team");
+	trap_AddCommand ("votell");
+	trap_AddCommand ("rechooselogo");
+	trap_AddCommand ("ready");
+	trap_AddCommand ("TeamReady");
+	trap_AddCommand ("dropCartridge");
+	trap_AddCommand ("dropTeamItem");
+	trap_AddCommand ("help");
+	trap_AddCommand ("spraydump");
+	// <- wop additions
 }
